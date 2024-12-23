@@ -5,6 +5,7 @@ class StudentUser(models.Model):
     last_name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=100)
+    user_type = models.CharField(max_length=100, default='')
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name} ({self.user_type})"
