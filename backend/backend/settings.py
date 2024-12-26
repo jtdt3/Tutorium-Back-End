@@ -29,6 +29,13 @@ ALLOWED_HOSTS = []
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'help.tutorium@gmail.com'  # Replace with your Gmail address
+EMAIL_HOST_PASSWORD = 'idxf xinb bvzm gztj'  # Replace with your Gmail App Password
+
 
 # Application definition
 
