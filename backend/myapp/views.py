@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser
+from .models import StudentUser, TutorApplication
 import json
 
 @csrf_exempt
@@ -42,6 +42,21 @@ def application(request):
             # Validate required fields
             if not email or not question_one or not question_two:
                 return JsonResponse({'error': 'All fields are required.'}, status=400)
+            
+
+                        # Get the StudentUser instance
+            try:
+                student = StudentUser.objects.get(email=email)
+            except StudentUser.DoesNotExist:
+                return JsonResponse({'error': 'User not found.'}, status=404)
+
+            # Create or update the application with just the foreign key and status
+            TutorApplication.objects.update_or_create(
+                user=student,
+                defaults={
+                    'approve_status': 'pending'
+                }
+            )
 
             # Email 1: Send to your own email with the form data
             subject_to_self = "New Tutor Application Received"
