@@ -29,13 +29,15 @@ ALLOWED_HOSTS = []
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'help.tutorium@gmail.com'  # Replace with your Gmail address
-EMAIL_HOST_PASSWORD = 'idxf xinb bvzm gztj'  # Replace with your Gmail App Password
-
+EMAIL_BACKEND = 'django_ses.SESBackend'
+# AWS credentials
+AWS_ACCESS_KEY_ID = 'AKIARYEUC2NWY3PWGBEH'# Replace with your AWS Access Key
+AWS_SECRET_ACCESS_KEY = 'QcvvZJg3ce84foxnvcnESUWocO7vNw1807SKjWVO'# Replace with your AWS Secret Key
+AWS_SES_REGION_NAME = 'us-west-2'# Replace with your SES region
+AWS_SES_REGION_ENDPOINT = 'email.us-west-2.amazonaws.com'# Sender email address (must be verified in SES)
+DEFAULT_FROM_EMAIL = 'help.tutorium@gmail.com'# Your verified Gmail address# Optional SES settings
+AWS_SES_AUTO_THROTTLE = 0.5# Auto-throttle based on send rate
+AWS_SES_RETURN_PATH = 'help.tutorium@gmail.com'# Email address for bounced emails
 
 # Application definition
 
