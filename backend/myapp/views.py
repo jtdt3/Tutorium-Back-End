@@ -172,17 +172,13 @@ def tutor_profile_status(request):
 def save_tutor_profile(request):
     if request.method == 'POST':
         try:
-            logger = logging.getLogger(__name__)
-            logger.info("Received POST request to save_tutor_profile")
-
             user_id = request.POST.get('user_id')
             bio = request.POST.get('bio')
-            subjects = request.POST.get('subjects')
+            subjects = request.POST.get('subjects')  # Comma-separated string
             location = request.POST.get('location')
-            language = request.POST.get('language')
+            language = request.POST.get('language')  # Comma-separated string
             profile_picture = request.FILES.get('profilePic')
-
-            logger.info(f"Received data: user_id={user_id}, bio={bio}, subjects={subjects}, location={location}, language={language}, profile_picture={profile_picture}")
+            existing_profile_picture = request.POST.get('existingProfilePic')
 
             if not user_id:
                 return JsonResponse({'error': 'User ID is required'}, status=400)
@@ -190,28 +186,31 @@ def save_tutor_profile(request):
             try:
                 user = StudentUser.objects.get(id=user_id)
             except StudentUser.DoesNotExist:
-                logger.error("User not found")
                 return JsonResponse({'error': 'User not found'}, status=404)
 
+            # Determine the profile picture URL
             profile_pic_url = None
             if profile_picture:
-                logger.info("Uploading profile picture to S3...")
+                # Upload new profile picture to S3
                 s3 = boto3.client(
                     's3',
                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
                 )
-                bucket_name = 'tutor-profile-pics'
-                file_name = f"tutor-profile-pics/{re.sub(r'[^a-zA-Z0-9_.-]', '_', profile_picture.name)}"
+                bucket_name = 'your-s3-bucket-name'
+                file_name = f"tutor-profile-pics/{profile_picture.name}"
                 s3.upload_fileobj(
-                    profile_picture, 
-                    bucket_name, 
+                    profile_picture,
+                    bucket_name,
                     file_name,
                 )
                 profile_pic_url = f"https://{bucket_name}.s3.amazonaws.com/{file_name}"
-                logger.info(f"Uploaded profile picture: {profile_pic_url}")
+            elif existing_profile_picture:
+                # Use the existing profile picture URL
+                profile_pic_url = existing_profile_picture
 
-            TutorProfile.objects.update_or_create(
+            # Update or create the tutor profile
+            profile, created = TutorProfile.objects.update_or_create(
                 user=user,
                 defaults={
                     'bio': bio,
@@ -222,14 +221,14 @@ def save_tutor_profile(request):
                     'profile_complete': 'yes',
                 }
             )
-            logger.info("Profile saved successfully")
+
             return JsonResponse({'message': 'Profile saved successfully!'}, status=200)
 
         except Exception as e:
-            logger.error(f"Error saving profile: {str(e)}", exc_info=True)
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 @csrf_exempt
 def get_tutor_profile(request):
