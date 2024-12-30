@@ -39,6 +39,17 @@ DEFAULT_FROM_EMAIL = 'help.tutorium@gmail.com'# Your verified Gmail address# Opt
 AWS_SES_AUTO_THROTTLE = 0.5# Auto-throttle based on send rate
 AWS_SES_RETURN_PATH = 'help.tutorium@gmail.com'# Email address for bounced emails
 
+
+AWS_STORAGE_BUCKET_NAME = 'tutor-profile-pics'
+AWS_S3_REGION_NAME = 'us-west-2'  # Replace with your region
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = False  # Files are accessible via URL
+
+# Static and Media Settings
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+MEDIA_URL = 'https://tutor-profile-pics.s3.amazonaws.com/'
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -50,6 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'myapp',
+    'storages',
 ]
 
 MIDDLEWARE = [

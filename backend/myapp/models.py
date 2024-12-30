@@ -37,14 +37,20 @@ class TutorApplication(models.Model):  # Changed name to be more specific
 
         super().save(*args, **kwargs)
 
+
 class TutorProfile(models.Model):
-    user = models.OneToOneField(StudentUser, on_delete=models.CASCADE)
+    user = models.OneToOneField('StudentUser', on_delete=models.CASCADE)
     bio = models.TextField(blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
-    subjects = models.CharField(max_length=255, blank=True)  # Comma-separated subject list
-    location = models.CharField(max_length=255, blank=True)  # Comma-separated subject list
-    language = models.CharField(max_length=255, blank=True)  # Comma-separated subject list
-    profile_complete = models.CharField(max_length=3, choices=[('yes', 'Yes'), ('no', 'No')], default='no')
+    profile_picture = models.URLField(max_length=500, blank=True, null=True)  # Changed to URLField
+    subjects = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    language = models.CharField(max_length=255, blank=True)
+    profile_complete = models.CharField(
+        max_length=3, 
+        choices=[('yes', 'Yes'), ('no', 'No')], 
+        default='no'
+    )
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}'s Profile"
+

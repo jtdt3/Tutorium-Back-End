@@ -2,7 +2,15 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from .models import StudentUser, TutorApplication, TutorProfile
+from django.conf import settings
 import json
+import boto3
+import logging
+import re
+
+
+logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 def signup(request):
@@ -28,6 +36,26 @@ def signup(request):
             return JsonResponse({'message': 'Failed to create user', 'error': str(e)}, status=400)
 
     return JsonResponse({'message': 'Invalid request method.'}, status=400)
+
+@csrf_exempt
+def get_student_user_data(request):
+    if request.method == 'GET':
+        user_id = request.GET.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': 'User ID is required'}, status=400)
+
+        try:
+            student_user = StudentUser.objects.get(id=user_id)
+            return JsonResponse({
+                'first_name': student_user.first_name,
+                'last_name': student_user.last_name,
+                'email': student_user.email,
+            }, status=200)
+        except StudentUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 @csrf_exempt
 def application(request):
@@ -133,6 +161,97 @@ def tutor_profile_status(request):
                 return JsonResponse({'profile_complete': tutor_profile.profile_complete}, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'profile_complete': None}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def save_tutor_profile(request):
+    if request.method == 'POST':
+        try:
+            logger = logging.getLogger(__name__)
+            logger.info("Received POST request to save_tutor_profile")
+
+            user_id = request.POST.get('user_id')
+            bio = request.POST.get('bio')
+            subjects = request.POST.get('subjects')
+            location = request.POST.get('location')
+            language = request.POST.get('language')
+            profile_picture = request.FILES.get('profilePic')
+
+            logger.info(f"Received data: user_id={user_id}, bio={bio}, subjects={subjects}, location={location}, language={language}, profile_picture={profile_picture}")
+
+            if not user_id:
+                return JsonResponse({'error': 'User ID is required'}, status=400)
+
+            try:
+                user = StudentUser.objects.get(id=user_id)
+            except StudentUser.DoesNotExist:
+                logger.error("User not found")
+                return JsonResponse({'error': 'User not found'}, status=404)
+
+            profile_pic_url = None
+            if profile_picture:
+                logger.info("Uploading profile picture to S3...")
+                s3 = boto3.client(
+                    's3',
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+                )
+                bucket_name = 'tutor-profile-pics'
+                file_name = f"tutor-profile-pics/{re.sub(r'[^a-zA-Z0-9_.-]', '_', profile_picture.name)}"
+                s3.upload_fileobj(
+                    profile_picture, 
+                    bucket_name, 
+                    file_name,
+                )
+                profile_pic_url = f"https://{bucket_name}.s3.amazonaws.com/{file_name}"
+                logger.info(f"Uploaded profile picture: {profile_pic_url}")
+
+            TutorProfile.objects.update_or_create(
+                user=user,
+                defaults={
+                    'bio': bio,
+                    'subjects': subjects,
+                    'location': location,
+                    'language': language,
+                    'profile_picture': profile_pic_url,
+                    'profile_complete': 'yes',
+                }
+            )
+            logger.info("Profile saved successfully")
+            return JsonResponse({'message': 'Profile saved successfully!'}, status=200)
+
+        except Exception as e:
+            logger.error(f"Error saving profile: {str(e)}", exc_info=True)
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def get_tutor_profile(request):
+    if request.method == 'GET':
+        try:
+            user_id = request.GET.get('user_id')
+
+            if not user_id:
+                return JsonResponse({'error': 'User ID is required'}, status=400)
+
+            try:
+                tutor_profile = TutorProfile.objects.get(user_id=user_id)
+                return JsonResponse({
+                    'bio': tutor_profile.bio,
+                    'profile_picture': tutor_profile.profile_picture,
+                    'subjects': tutor_profile.subjects,
+                    'location': tutor_profile.location,
+                    'language': tutor_profile.language,
+                    'profile_complete': tutor_profile.profile_complete
+                }, status=200)
+            except TutorProfile.DoesNotExist:
+                return JsonResponse({'error': 'Profile not found'}, status=404)
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
