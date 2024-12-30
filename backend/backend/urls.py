@@ -15,10 +15,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from myapp.views import signup, application
+from myapp.views import signup, application, tutor_profile_status, tutor_approve_status
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/signup/', signup, name='signup'),
     path('api/application', application, name='application'),
+    path('api/tutor-approve-status/', tutor_approve_status, name='tutor_approve_status'),
+    path('api/tutor-profile-status/', tutor_profile_status, name='tutor_profile_status'),
+
 ]

@@ -19,3 +19,32 @@ class TutorApplication(models.Model):  # Changed name to be more specific
     
     user = models.OneToOneField(StudentUser, on_delete=models.CASCADE)
     approve_status = models.CharField(max_length=20, choices=APPROVE_STATUS_CHOICES, default='pending')
+
+    ###
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name} - {self.approve_status}"
+
+    def save(self, *args, **kwargs):
+        # Check if the approve_status is updated to 'approved'
+        if self.approve_status == 'approved':
+            # Create or get a TutorProfile for the user
+            TutorProfile.objects.get_or_create(user=self.user)
+
+            # Update the user's user_type to 'tutor' if not already
+            if self.user.user_type != 'tutor':
+                self.user.user_type = 'tutor'
+                self.user.save()
+
+        super().save(*args, **kwargs)
+
+class TutorProfile(models.Model):
+    user = models.OneToOneField(StudentUser, on_delete=models.CASCADE)
+    bio = models.TextField(blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    subjects = models.CharField(max_length=255, blank=True)  # Comma-separated subject list
+    location = models.CharField(max_length=255, blank=True)  # Comma-separated subject list
+    language = models.CharField(max_length=255, blank=True)  # Comma-separated subject list
+    profile_complete = models.CharField(max_length=3, choices=[('yes', 'Yes'), ('no', 'No')], default='no')
+
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}'s Profile"

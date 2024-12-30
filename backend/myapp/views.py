@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser, TutorApplication
+from .models import StudentUser, TutorApplication, TutorProfile
 import json
 
 @csrf_exempt
@@ -100,3 +100,41 @@ def application(request):
 
     # If not a POST request, return a 405 Method Not Allowed
     return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+@csrf_exempt
+def tutor_approve_status(request):
+    if request.method == 'GET':
+        user_id = request.GET.get('user_id')
+        if not user_id:
+            return JsonResponse({'error': 'User ID is required'}, status=400)
+
+        try:
+            tutor_application = TutorApplication.objects.get(user_id=user_id)
+            return JsonResponse({'approve_status': tutor_application.approve_status}, status=200)
+        except TutorApplication.DoesNotExist:
+            return JsonResponse({'approve_status': None}, status=404)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt  # Remove csrf_exempt in production and secure the endpoint
+def tutor_profile_status(request):
+    if request.method == 'GET':
+        try:
+            # Retrieve the user_id from query parameters
+            user_id = request.GET.get('user_id')
+
+            if not user_id:
+                return JsonResponse({'error': 'User ID is required'}, status=400)
+
+            # Check if a TutorProfile exists for the given user_id
+            try:
+                tutor_profile = TutorProfile.objects.get(user_id=user_id)
+                return JsonResponse({'profile_complete': tutor_profile.profile_complete}, status=200)
+            except TutorProfile.DoesNotExist:
+                return JsonResponse({'profile_complete': None}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
