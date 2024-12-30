@@ -197,7 +197,7 @@ def save_tutor_profile(request):
                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
                 )
-                bucket_name = 'your-s3-bucket-name'
+                bucket_name = 'tutor-profile-pics'
                 file_name = f"tutor-profile-pics/{profile_picture.name}"
                 s3.upload_fileobj(
                     profile_picture,
