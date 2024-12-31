@@ -7,6 +7,8 @@ import json
 import boto3
 import logging
 import re
+from django.db.models import Q
+
 
 
 logger = logging.getLogger(__name__)
@@ -256,3 +258,35 @@ def get_tutor_profile(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def search_tutors(request):
+    if request.method == 'GET':
+        subject = request.GET.get('subject', '').strip()
+        location = request.GET.get('location', '').strip()
+        language = request.GET.get('language', '').strip()
+
+        # Start with all tutors and apply filters for all aspects of the query
+        filters = Q()
+        if subject:
+            filters &= Q(subjects__icontains=subject)  # Subject must contain the query
+        if location:
+            filters &= Q(location__icontains=location)  # Location must contain the query
+        if language:
+            filters &= Q(language__icontains=language)  # Language must contain the query
+
+        # Only return tutors where all filters match and profile is complete
+        tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
+            'user__first_name',
+            'user__last_name',
+            'profile_picture',
+            'subjects',
+            'location',
+            'language',
+            'bio'
+        )
+
+        return JsonResponse(list(tutors), safe=False)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
