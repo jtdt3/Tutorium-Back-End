@@ -8,6 +8,7 @@ import boto3
 import logging
 import re
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 
 
 
@@ -170,6 +171,80 @@ def tutor_profile_status(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
+# @csrf_exempt
+# def save_tutor_profile(request):
+#     if request.method == 'POST':
+#         try:
+#             user_id = request.POST.get('user_id')
+#             bio = request.POST.get('bio')
+#             subjects = request.POST.get('subjects')  # Comma-separated string
+#             location = request.POST.get('location')
+#             language = request.POST.get('language')  # Comma-separated string
+#             profile_picture = request.FILES.get('profilePic')
+#             existing_profile_picture = request.POST.get('existingProfilePic')
+
+#             if not user_id:
+#                 return JsonResponse({'error': 'User ID is required'}, status=400)
+
+#             try:
+#                 user = StudentUser.objects.get(id=user_id)
+#             except StudentUser.DoesNotExist:
+#                 return JsonResponse({'error': 'User not found'}, status=404)
+
+#             # Determine the profile picture URL
+#             profile_pic_url = None
+#             if profile_picture:
+#                 # Upload new profile picture to S3
+#                 s3 = boto3.client(
+#                     's3',
+#                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+#                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+#                 )
+#                 bucket_name = 'tutor-profile-pics'
+#                 file_name = f"tutor-profile-pics/{profile_picture.name}"
+#                 s3.upload_fileobj(
+#                     profile_picture,
+#                     bucket_name,
+#                     file_name,
+#                 )
+#                 profile_pic_url = f"https://{bucket_name}.s3.amazonaws.com/{file_name}"
+#             elif existing_profile_picture:
+#                 # Use the existing profile picture URL
+#                 profile_pic_url = existing_profile_picture
+
+#             # Update or create the tutor profile
+#             profile, created = TutorProfile.objects.update_or_create(
+#                 user=user,
+#                 defaults={
+#                     'bio': bio,
+#                     'subjects': subjects,
+#                     'location': location,
+#                     'language': language,
+#                     'profile_picture': profile_pic_url,
+#                     'profile_complete': 'yes',
+#                 }
+#             )
+
+#             return JsonResponse({'message': 'Profile saved successfully!'}, status=200)
+
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+
+#     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+# Allowed image file extensions
+ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png']
+ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png']
+
+
+def validate_image_file(profile_picture):
+    """Validate image file extension and content type."""
+    if not profile_picture.name.split('.')[-1].lower() in ALLOWED_EXTENSIONS:
+        raise ValidationError("Only JPG, JPEG, and PNG file types are allowed.")
+    if profile_picture.content_type not in ALLOWED_CONTENT_TYPES:
+        raise ValidationError("Invalid image content type. Only JPG, JPEG, and PNG are allowed.")
+
+
 @csrf_exempt
 def save_tutor_profile(request):
     if request.method == 'POST':
@@ -190,9 +265,14 @@ def save_tutor_profile(request):
             except StudentUser.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
 
-            # Determine the profile picture URL
+            # Validate and upload profile picture if provided
             profile_pic_url = None
             if profile_picture:
+                try:
+                    validate_image_file(profile_picture)
+                except ValidationError as e:
+                    return JsonResponse({'error': str(e)}, status=400)
+
                 # Upload new profile picture to S3
                 s3 = boto3.client(
                     's3',
@@ -200,13 +280,20 @@ def save_tutor_profile(request):
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
                 )
                 bucket_name = 'tutor-profile-pics'
-                file_name = f"tutor-profile-pics/{profile_picture.name}"
+                file_extension = profile_picture.name.split('.')[-1].lower()
+                file_name = f"tutor-profile-pics/{user_id}_profile.{file_extension}"
+                
                 s3.upload_fileobj(
                     profile_picture,
                     bucket_name,
                     file_name,
+                    ExtraArgs={
+                        'ContentType': profile_picture.content_type,
+                        # 'ACL': 'public-read'
+                    }
                 )
                 profile_pic_url = f"https://{bucket_name}.s3.amazonaws.com/{file_name}"
+            
             elif existing_profile_picture:
                 # Use the existing profile picture URL
                 profile_pic_url = existing_profile_picture
@@ -226,8 +313,11 @@ def save_tutor_profile(request):
 
             return JsonResponse({'message': 'Profile saved successfully!'}, status=200)
 
+        except ValidationError as ve:
+            return JsonResponse({'error': str(ve)}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            print(e)  # Log the error for debugging
+            return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
