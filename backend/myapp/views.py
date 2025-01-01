@@ -368,6 +368,7 @@ def search_tutors(request):
 
         # Only return tutors where all filters match and profile is complete
         tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
+            'user__id',
             'user__first_name',
             'user__last_name',
             'profile_picture',
@@ -378,5 +379,30 @@ def search_tutors(request):
         )
 
         return JsonResponse(list(tutors), safe=False)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
+def tutor_details(request, tutor_id):
+    if request.method == 'GET':
+        try:
+            tutor = TutorProfile.objects.filter(user__id=tutor_id, profile_complete='yes').values(
+                'user__id',  # Include the user ID
+                'user__first_name',
+                'user__last_name',
+                'profile_picture',
+                'bio',
+                'subjects',
+                'location',
+                'language'
+            ).first()
+
+            if not tutor:
+                return JsonResponse({'error': 'Tutor not found'}, status=404)
+
+            return JsonResponse(tutor, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
