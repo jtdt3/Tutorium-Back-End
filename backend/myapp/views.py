@@ -9,6 +9,8 @@ import logging
 import re
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password, check_password
+
 
 
 
@@ -24,12 +26,16 @@ def signup(request):
             # Fallback to default value if userType is not provided
             user_type = data.get('userType', '')  # Default to ''
 
+
+            # Hash the password before saving the user
+            hashed_password = make_password(data['password'])
+
             # Create a new user
             student = StudentUser.objects.create(
                 first_name=data['firstName'],
                 last_name=data['lastName'],
                 email=data['email'],
-                password=data['password'],  # Consider hashing this in production
+                password=hashed_password,  # Consider hashing this in production
                 user_type=user_type
             )
 
@@ -406,3 +412,28 @@ def tutor_details(request, tutor_id):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+def signin(request):
+    if request.method == 'POST':
+        import json
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
+
+        try:
+            user = StudentUser.objects.get(email=email)
+            if check_password(password, user.password):  # Assumes passwords are hashed
+                return JsonResponse({
+                    'status': 'success',
+                    'user_id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'user_type': user.user_type,
+                })
+            else:
+                return JsonResponse({'status': 'fail', 'message': 'Invalid password'}, status=400)
+        except StudentUser.DoesNotExist:
+            return JsonResponse({'status': 'fail', 'message': 'User does not exist'}, status=404)
+    else:
+        return JsonResponse({'status': 'fail', 'message': 'Invalid request method'}, status=405)
