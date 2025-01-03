@@ -10,7 +10,7 @@ import re
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
-
+from botocore.exceptions import BotoCoreError, ClientError
 
 
 
@@ -176,67 +176,6 @@ def tutor_profile_status(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-
-# @csrf_exempt
-# def save_tutor_profile(request):
-#     if request.method == 'POST':
-#         try:
-#             user_id = request.POST.get('user_id')
-#             bio = request.POST.get('bio')
-#             subjects = request.POST.get('subjects')  # Comma-separated string
-#             location = request.POST.get('location')
-#             language = request.POST.get('language')  # Comma-separated string
-#             profile_picture = request.FILES.get('profilePic')
-#             existing_profile_picture = request.POST.get('existingProfilePic')
-
-#             if not user_id:
-#                 return JsonResponse({'error': 'User ID is required'}, status=400)
-
-#             try:
-#                 user = StudentUser.objects.get(id=user_id)
-#             except StudentUser.DoesNotExist:
-#                 return JsonResponse({'error': 'User not found'}, status=404)
-
-#             # Determine the profile picture URL
-#             profile_pic_url = None
-#             if profile_picture:
-#                 # Upload new profile picture to S3
-#                 s3 = boto3.client(
-#                     's3',
-#                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-#                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-#                 )
-#                 bucket_name = 'tutor-profile-pics'
-#                 file_name = f"tutor-profile-pics/{profile_picture.name}"
-#                 s3.upload_fileobj(
-#                     profile_picture,
-#                     bucket_name,
-#                     file_name,
-#                 )
-#                 profile_pic_url = f"https://{bucket_name}.s3.amazonaws.com/{file_name}"
-#             elif existing_profile_picture:
-#                 # Use the existing profile picture URL
-#                 profile_pic_url = existing_profile_picture
-
-#             # Update or create the tutor profile
-#             profile, created = TutorProfile.objects.update_or_create(
-#                 user=user,
-#                 defaults={
-#                     'bio': bio,
-#                     'subjects': subjects,
-#                     'location': location,
-#                     'language': language,
-#                     'profile_picture': profile_pic_url,
-#                     'profile_complete': 'yes',
-#                 }
-#             )
-
-#             return JsonResponse({'message': 'Profile saved successfully!'}, status=200)
-
-#         except Exception as e:
-#             return JsonResponse({'error': str(e)}, status=500)
-
-#     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 # Allowed image file extensions
 ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png']
@@ -437,3 +376,73 @@ def signin(request):
             return JsonResponse({'status': 'fail', 'message': 'User does not exist'}, status=404)
     else:
         return JsonResponse({'status': 'fail', 'message': 'Invalid request method'}, status=405)
+
+
+from django.core.mail import send_mail
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def send_tutor_request_email(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            first_name = data.get('firstName')
+            last_name = data.get('lastName')
+            email = data.get('email')
+            description = data.get('description')
+            tutor_first_name = data.get('tutorFirstName')
+            tutor_last_name = data.get('tutorLastName')
+            tutor_id = data.get('tutorId')
+
+            if not all([first_name, last_name, email, description, tutor_first_name, tutor_last_name, tutor_id]):
+                return JsonResponse({'error': 'All fields are required.'}, status=400)
+
+            # Find tutor's email using the tutor_id
+            try:
+                tutor = StudentUser.objects.get(pk=tutor_id)
+                tutor_email = tutor.email
+            except StudentUser.DoesNotExist:
+                return JsonResponse({'error': 'Tutor not found.'}, status=404)
+
+            # Email content
+            admin_email_subject = 'New Tutor Request'
+            admin_email_body = f"""
+                New tutor request for {tutor_first_name} {tutor_last_name} (Tutor Email: {tutor_email}):
+                - Student Name: {first_name} {last_name}
+                - Student Email: {email}
+                - Description: {description}
+            """
+            user_email_subject = 'Request Received'
+            user_email_body = f"""
+                Hi {first_name},
+
+                Thank you for reaching out to us. We have received your request for tutor {tutor_first_name} {tutor_last_name}. We will get back to you shortly.
+
+                Best regards,
+                The Tutorium Team
+            """
+
+            # Send email to the admin
+            send_mail(
+                subject=admin_email_subject,
+                message=admin_email_body,
+                from_email='help.tutorium@gmail.com',
+                recipient_list=['help.tutorium@gmail.com'],
+            )
+
+            # Send confirmation email to the user
+            send_mail(
+                subject=user_email_subject,
+                message=user_email_body,
+                from_email='help.tutorium@gmail.com',
+                recipient_list=[email],
+            )
+
+            return JsonResponse({'message': 'Emails sent successfully.'})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method.'}, status=405)
