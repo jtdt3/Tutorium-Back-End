@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from myapp.views import signup, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email
+from myapp.views import signup, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,6 +30,10 @@ urlpatterns = [
     path('api/tutor-details/<int:tutor_id>/', tutor_details, name='tutor-details'),
     path('api/signin/', signin, name='signin'),
     path('api/tutor-request-email/', send_tutor_request_email, name='send-tutor-request-email'),
+    path('api/bookmark-tutor/', bookmark_tutor, name='bookmark_tutor'),
+    path('api/is-tutor-bookmarked/', is_tutor_bookmarked, name='is_tutor_bookmarked'),
+    path('api/unbookmark-tutor/', unbookmark_tutor, name='unbookmark_tutor'),
+    path('api/bookmarked-tutors/', get_bookmarked_tutors, name='get_bookmarked_tutors'),
 
 
 ]

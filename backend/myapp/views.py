@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser, TutorApplication, TutorProfile
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors
 from django.conf import settings
 import json
 import boto3
@@ -446,3 +446,107 @@ def send_tutor_request_email(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
+
+@csrf_exempt
+def bookmark_tutor(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student_id = data.get('studentID')
+            tutor_id = data.get('tutorID')
+
+            if not student_id or not tutor_id:
+                return JsonResponse({'error': 'studentID and tutorID are required'}, status=400)
+
+            # Check if this bookmark already exists
+            existing = BookmarkedTutors.objects.filter(student_id=student_id, tutor_id=tutor_id).first()
+            if existing:
+                return JsonResponse({'message': 'Tutor already bookmarked'}, status=200)
+
+            # Save the bookmark
+            bookmark = BookmarkedTutors(student_id=student_id, tutor_id=tutor_id)
+            bookmark.save()
+            return JsonResponse({'message': 'Tutor bookmarked successfully'}, status=201)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+@csrf_exempt
+def is_tutor_bookmarked(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student_id = data.get('studentID')
+            tutor_id = data.get('tutorID')
+
+            if not student_id or not tutor_id:
+                return JsonResponse({'error': 'studentID and tutorID are required'}, status=400)
+
+            # Check if the bookmark exists
+            exists = BookmarkedTutors.objects.filter(student_id=student_id, tutor_id=tutor_id).exists()
+            return JsonResponse({'isBookmarked': exists}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+@csrf_exempt
+def unbookmark_tutor(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student_id = data.get('studentID')
+            tutor_id = data.get('tutorID')
+
+            if not student_id or not tutor_id:
+                return JsonResponse({'error': 'studentID and tutorID are required'}, status=400)
+
+            # Find and delete the bookmark
+            bookmark = BookmarkedTutors.objects.filter(student_id=student_id, tutor_id=tutor_id).first()
+            if bookmark:
+                bookmark.delete()
+                return JsonResponse({'message': 'Tutor unbookmarked successfully'}, status=200)
+            else:
+                return JsonResponse({'error': 'Bookmark does not exist'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+
+@csrf_exempt
+def get_bookmarked_tutors(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student_id = data.get('studentID')
+
+            if not student_id:
+                return JsonResponse({'error': 'studentID is required'}, status=400)
+
+            # Get all bookmarked tutors for the student
+            bookmarks = BookmarkedTutors.objects.filter(student_id=student_id)
+            if not bookmarks.exists():
+                return JsonResponse({'bookmarked_tutors': []}, status=200)
+
+            # Retrieve tutor details for each bookmarked tutor
+            bookmarked_tutors = []
+            for bookmark in bookmarks:
+                tutor_profile = TutorProfile.objects.filter(user_id=bookmark.tutor_id).first()
+                if tutor_profile:
+                    bookmarked_tutors.append({
+                        'tutorID': bookmark.tutor_id,
+                        'name': f"{tutor_profile.user.first_name} {tutor_profile.user.last_name}",
+                        'subjects': tutor_profile.subjects,
+                        'location': tutor_profile.location,
+                        'languages': tutor_profile.language,
+                        'profile_picture': tutor_profile.profile_picture,  # Include S3 URL
+                    })
+
+            return JsonResponse({'bookmarked_tutors': bookmarked_tutors}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)

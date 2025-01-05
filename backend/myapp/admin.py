@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import StudentUser, TutorApplication, TutorProfile
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors
 
 @admin.register(StudentUser)
 class StudentUserAdmin(admin.ModelAdmin):
@@ -20,3 +20,11 @@ class TutorApplicationAdmin(admin.ModelAdmin):
 @admin.register(TutorProfile)
 class TutorProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'profile_complete')
+
+
+# Register the BookmarkedTutors model
+@admin.register(BookmarkedTutors)
+class BookmarkedTutorsAdmin(admin.ModelAdmin):
+    list_display = ('student_id', 'tutor_id')  # Display these fields in the admin list view
+    search_fields = ('student_id', 'tutor_id')  # Enable search by student_id and tutor_id
+    list_filter = ('student_id',)  # Add filter for student_id

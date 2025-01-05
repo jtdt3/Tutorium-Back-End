@@ -54,4 +54,9 @@ class TutorProfile(models.Model):
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}'s Profile"
 
+class BookmarkedTutors(models.Model):
+    student_id = models.IntegerField()  # Or use models.ForeignKey if linked to a User model
+    tutor_id = models.IntegerField()
 
+    def __str__(self):
+        return f"Student {self.student_id} bookmarked Tutor {self.tutor_id}"
