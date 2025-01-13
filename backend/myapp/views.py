@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview
 from django.conf import settings
 import json
 import boto3
@@ -546,6 +546,49 @@ def get_bookmarked_tutors(request):
                     })
 
             return JsonResponse({'bookmarked_tutors': bookmarked_tutors}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def add_review(request, tutor_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student_id = data.get('studentID')
+            rating = data.get('rating')
+            comment = data.get('comment')
+
+            # Validate input
+            if not all([student_id, tutor_id, rating, comment]):
+                return JsonResponse({'error': 'You must be logged into an account to leave a review.'}, status=400)
+
+            # Check if the student already submitted a review for this tutor
+            if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
+                return JsonResponse({
+                    'error': 'You have already submitted a review for this tutor. '
+                             'For questions or help, email help.tutorium@gmail.com'
+                }, status=400)
+
+            # Fetch student and tutor instances
+            student = StudentUser.objects.get(id=student_id)
+            tutor = TutorProfile.objects.get(user_id=tutor_id)
+
+            # Create and save the review
+            review = TutorReview.objects.create(
+                student=student,
+                tutor=tutor,
+                rating=rating,
+                comment=comment
+            )
+            review.save()
+
+            return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
+        except StudentUser.DoesNotExist:
+            return JsonResponse({'error': 'Invalid studentID'}, status=404)
+        except TutorProfile.DoesNotExist:
+            return JsonResponse({'error': 'Invalid tutorID'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
