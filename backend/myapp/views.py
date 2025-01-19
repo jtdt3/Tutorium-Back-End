@@ -560,16 +560,16 @@ def add_review(request, tutor_id):
             rating = data.get('rating')
             comment = data.get('comment')
 
-            # Validate input
-            if not all([student_id, tutor_id, rating, comment]):
-                return JsonResponse({'error': 'You must be logged into an account to leave a review.'}, status=400)
+            # # Validate input
+            # if not all([student_id, tutor_id, rating, comment]):
+            #     return JsonResponse({'error': 'You must be logged into an account to leave a review.'}, status=400)
 
-            # Check if the student already submitted a review for this tutor
-            if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
-                return JsonResponse({
-                    'error': 'You have already submitted a review for this tutor. '
-                             'For questions or help, email help.tutorium@gmail.com'
-                }, status=400)
+            # # Check if the student already submitted a review for this tutor
+            # if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
+            #     return JsonResponse({
+            #         'error': 'You have already submitted a review for this tutor. '
+            #                  'For questions or help, email help.tutorium@gmail.com'
+            #     }, status=400) 
 
             # Fetch student and tutor instances
             student = StudentUser.objects.get(id=student_id)
