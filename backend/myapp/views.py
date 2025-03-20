@@ -7,29 +7,29 @@ import json
 import boto3
 import logging
 import re
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 from botocore.exceptions import BotoCoreError, ClientError
-
-
-
+ 
+ 
+ 
 logger = logging.getLogger(__name__)
-
-
+ 
+ 
 @csrf_exempt
 def signup(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-
+ 
             # Fallback to default value if userType is not provided
             user_type = data.get('userType', '')  # Default to ''
-
-
+ 
+ 
             # Hash the password before saving the user
             hashed_password = make_password(data['password'])
-
+ 
             # Create a new user
             student = StudentUser.objects.create(
                 first_name=data['firstName'],
@@ -38,21 +38,21 @@ def signup(request):
                 password=hashed_password,  # Consider hashing this in production
                 user_type=user_type
             )
-
+ 
             return JsonResponse({'message': 'User created successfully!', 'user_id': student.id}, status=201)
-
+ 
         except Exception as e:
             return JsonResponse({'message': 'Failed to create user', 'error': str(e)}, status=400)
-
+ 
     return JsonResponse({'message': 'Invalid request method.'}, status=400)
-
+ 
 @csrf_exempt
 def get_student_user_data(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
         if not user_id:
             return JsonResponse({'error': 'User ID is required'}, status=400)
-
+ 
         try:
             student_user = StudentUser.objects.get(id=user_id)
             return JsonResponse({
@@ -62,10 +62,10 @@ def get_student_user_data(request):
             }, status=200)
         except StudentUser.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
+ 
+ 
 @csrf_exempt
 def application(request):
     if request.method == 'POST':
@@ -75,18 +75,18 @@ def application(request):
             email = data.get('email', '')
             question_one = data.get('questionOne', '')
             question_two = data.get('questionTwo', '')
-
+ 
             # Validate required fields
             if not email or not question_one or not question_two:
                 return JsonResponse({'error': 'All fields are required.'}, status=400)
             
-
+ 
                         # Get the StudentUser instance
             try:
                 student = StudentUser.objects.get(email=email)
             except StudentUser.DoesNotExist:
                 return JsonResponse({'error': 'User not found.'}, status=404)
-
+ 
             # Create or update the application with just the foreign key and status
             TutorApplication.objects.update_or_create(
                 user=student,
@@ -94,7 +94,7 @@ def application(request):
                     'approve_status': 'pending'
                 }
             )
-
+ 
             # Email 1: Send to your own email with the form data
             subject_to_self = "New Tutor Application Received"
             message_to_self = (
@@ -105,12 +105,12 @@ def application(request):
                 f"List Your Qualifications. Have you ever worked with a different tutoring app?:\n"
                 f"{question_two}\n\n"
             )
-
+ 
             sender_email = "help.tutorium@gmail.com"  # Your Gmail address
             your_email = "help.tutorium@gmail.com"  # Your email to receive the form data
-
+ 
             send_mail(subject_to_self, message_to_self, sender_email, [your_email])
-
+ 
             # Email 2: Send to the applicant (recipient email) with a confirmation
             subject_to_recipient = "Your Tutor Application Submission"
             message_to_recipient = (
@@ -123,73 +123,73 @@ def application(request):
                 f"We will review your application and get back to you shortly.\n\n"
                 f"Best regards,\nThe Tutorium Team"
             )
-
+ 
             recipient_email = email  # Use the submitted email as the recipient
-
+ 
             send_mail(subject_to_recipient, message_to_recipient, sender_email, [recipient_email])
-
+ 
             # Return success response
             return JsonResponse({'message': 'Application received successfully!'}, status=200)
-
+ 
         except Exception as e:
             # Handle any errors
             return JsonResponse({'error': str(e)}, status=500)
-
+ 
     # If not a POST request, return a 405 Method Not Allowed
     return JsonResponse({'error': 'Invalid request method.'}, status=405)
-
+ 
 @csrf_exempt
 def tutor_approve_status(request):
     if request.method == 'GET':
         user_id = request.GET.get('user_id')
         if not user_id:
             return JsonResponse({'error': 'User ID is required'}, status=400)
-
+ 
         try:
             tutor_application = TutorApplication.objects.get(user_id=user_id)
             return JsonResponse({'approve_status': tutor_application.approve_status}, status=200)
         except TutorApplication.DoesNotExist:
             return JsonResponse({'approve_status': None}, status=404)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
+ 
+ 
 @csrf_exempt  # Remove csrf_exempt in production and secure the endpoint
 def tutor_profile_status(request):
     if request.method == 'GET':
         try:
             # Retrieve the user_id from query parameters
             user_id = request.GET.get('user_id')
-
+ 
             if not user_id:
                 return JsonResponse({'error': 'User ID is required'}, status=400)
-
+ 
             # Check if a TutorProfile exists for the given user_id
             try:
                 tutor_profile = TutorProfile.objects.get(user_id=user_id)
                 return JsonResponse({'profile_complete': tutor_profile.profile_complete}, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'profile_complete': None}, status=404)
-
+ 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
+ 
+ 
 # Allowed image file extensions
 ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png']
 ALLOWED_CONTENT_TYPES = ['image/jpeg', 'image/png']
-
-
+ 
+ 
 def validate_image_file(profile_picture):
     """Validate image file extension and content type."""
     if not profile_picture.name.split('.')[-1].lower() in ALLOWED_EXTENSIONS:
         raise ValidationError("Only JPG, JPEG, and PNG file types are allowed.")
     if profile_picture.content_type not in ALLOWED_CONTENT_TYPES:
         raise ValidationError("Invalid image content type. Only JPG, JPEG, and PNG are allowed.")
-
-
+ 
+ 
 @csrf_exempt
 def save_tutor_profile(request):
     if request.method == 'POST':
@@ -201,15 +201,15 @@ def save_tutor_profile(request):
             language = request.POST.get('language')  # Comma-separated string
             profile_picture = request.FILES.get('profilePic')
             existing_profile_picture = request.POST.get('existingProfilePic')
-
+ 
             if not user_id:
                 return JsonResponse({'error': 'User ID is required'}, status=400)
-
+ 
             try:
                 user = StudentUser.objects.get(id=user_id)
             except StudentUser.DoesNotExist:
                 return JsonResponse({'error': 'User not found'}, status=404)
-
+ 
             # Validate and upload profile picture if provided
             profile_pic_url = None
             if profile_picture:
@@ -217,7 +217,7 @@ def save_tutor_profile(request):
                     validate_image_file(profile_picture)
                 except ValidationError as e:
                     return JsonResponse({'error': str(e)}, status=400)
-
+ 
                 # Upload new profile picture to S3
                 s3 = boto3.client(
                     's3',
@@ -242,7 +242,7 @@ def save_tutor_profile(request):
             elif existing_profile_picture:
                 # Use the existing profile picture URL
                 profile_pic_url = existing_profile_picture
-
+ 
             # Update or create the tutor profile
             profile, created = TutorProfile.objects.update_or_create(
                 user=user,
@@ -255,27 +255,27 @@ def save_tutor_profile(request):
                     'profile_complete': 'yes',
                 }
             )
-
+ 
             return JsonResponse({'message': 'Profile saved successfully!'}, status=200)
-
+ 
         except ValidationError as ve:
             return JsonResponse({'error': str(ve)}, status=400)
         except Exception as e:
             print(e)  # Log the error for debugging
             return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
+ 
+ 
 @csrf_exempt
 def get_tutor_profile(request):
     if request.method == 'GET':
         try:
             user_id = request.GET.get('user_id')
-
+ 
             if not user_id:
                 return JsonResponse({'error': 'User ID is required'}, status=400)
-
+ 
             try:
                 tutor_profile = TutorProfile.objects.get(user_id=user_id)
                 return JsonResponse({
@@ -288,20 +288,20 @@ def get_tutor_profile(request):
                 }, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'error': 'Profile not found'}, status=404)
-
+ 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
+ 
+ 
 @csrf_exempt
 def search_tutors(request):
     if request.method == 'GET':
         subject = request.GET.get('subject', '').strip()
         location = request.GET.get('location', '').strip()
         language = request.GET.get('language', '').strip()
-
+ 
         # Start with all tutors and apply filters for all aspects of the query
         filters = Q()
         if subject:
@@ -310,7 +310,7 @@ def search_tutors(request):
             filters &= Q(location__icontains=location)  # Location must contain the query
         if language:
             filters &= Q(language__icontains=language)  # Language must contain the query
-
+ 
         # Only return tutors where all filters match and profile is complete
         tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
             'user__id',
@@ -320,14 +320,15 @@ def search_tutors(request):
             'subjects',
             'location',
             'language',
-            'bio'
+            'bio',
+            'average_rating'
         )
-
+ 
         return JsonResponse(list(tutors), safe=False)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
-
-
+ 
+ 
 @csrf_exempt
 def tutor_details(request, tutor_id):
     if request.method == 'GET':
@@ -340,18 +341,22 @@ def tutor_details(request, tutor_id):
                 'bio',
                 'subjects',
                 'location',
-                'language'
+                'language',
+                'average_rating'  # Include average_rating in the response
             ).first()
-
+ 
             if not tutor:
+                logger.error(f"Tutor with ID {tutor_id} not found or profile incomplete.")
                 return JsonResponse({'error': 'Tutor not found'}, status=404)
-
+ 
             return JsonResponse(tutor, safe=False)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
+            logger.error(f"Error fetching tutor details for tutor_id {tutor_id}: {str(e)}")  # Log the error
+            return JsonResponse({'error': f"Internal Server Error: {str(e)}"}, status=500)
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
-
+ 
+ 
 @csrf_exempt
 def signin(request):
     if request.method == 'POST':
@@ -359,7 +364,7 @@ def signin(request):
         data = json.loads(request.body)
         email = data.get('email')
         password = data.get('password')
-
+ 
         try:
             user = StudentUser.objects.get(email=email)
             if check_password(password, user.password):  # Assumes passwords are hashed
@@ -376,13 +381,13 @@ def signin(request):
             return JsonResponse({'status': 'fail', 'message': 'User does not exist'}, status=404)
     else:
         return JsonResponse({'status': 'fail', 'message': 'Invalid request method'}, status=405)
-
-
+ 
+ 
 from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-
+ 
 @csrf_exempt
 def send_tutor_request_email(request):
     if request.method == 'POST':
@@ -395,17 +400,17 @@ def send_tutor_request_email(request):
             tutor_first_name = data.get('tutorFirstName')
             tutor_last_name = data.get('tutorLastName')
             tutor_id = data.get('tutorId')
-
+ 
             if not all([first_name, last_name, email, description, tutor_first_name, tutor_last_name, tutor_id]):
                 return JsonResponse({'error': 'All fields are required.'}, status=400)
-
+ 
             # Find tutor's email using the tutor_id
             try:
                 tutor = StudentUser.objects.get(pk=tutor_id)
                 tutor_email = tutor.email
             except StudentUser.DoesNotExist:
                 return JsonResponse({'error': 'Tutor not found.'}, status=404)
-
+ 
             # Email content
             admin_email_subject = 'New Tutor Request'
             admin_email_body = f"""
@@ -417,13 +422,13 @@ def send_tutor_request_email(request):
             user_email_subject = 'Request Received'
             user_email_body = f"""
                 Hi {first_name},
-
+ 
                 Thank you for reaching out to us. We have received your request for tutor {tutor_first_name} {tutor_last_name}. We will get back to you shortly.
-
+ 
                 Best regards,
                 The Tutorium Team
             """
-
+ 
             # Send email to the admin
             send_mail(
                 subject=admin_email_subject,
@@ -431,7 +436,7 @@ def send_tutor_request_email(request):
                 from_email='help.tutorium@gmail.com',
                 recipient_list=['help.tutorium@gmail.com'],
             )
-
+ 
             # Send confirmation email to the user
             send_mail(
                 subject=user_email_subject,
@@ -439,15 +444,15 @@ def send_tutor_request_email(request):
                 from_email='help.tutorium@gmail.com',
                 recipient_list=[email],
             )
-
+ 
             return JsonResponse({'message': 'Emails sent successfully.'})
-
+ 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
+ 
     return JsonResponse({'error': 'Invalid request method.'}, status=405)
-
-
+ 
+ 
 @csrf_exempt
 def bookmark_tutor(request):
     if request.method == 'POST':
@@ -455,15 +460,15 @@ def bookmark_tutor(request):
             data = json.loads(request.body)
             student_id = data.get('studentID')
             tutor_id = data.get('tutorID')
-
+ 
             if not student_id or not tutor_id:
                 return JsonResponse({'error': 'studentID and tutorID are required'}, status=400)
-
+ 
             # Check if this bookmark already exists
             existing = BookmarkedTutors.objects.filter(student_id=student_id, tutor_id=tutor_id).first()
             if existing:
                 return JsonResponse({'message': 'Tutor already bookmarked'}, status=200)
-
+ 
             # Save the bookmark
             bookmark = BookmarkedTutors(student_id=student_id, tutor_id=tutor_id)
             bookmark.save()
@@ -480,10 +485,10 @@ def is_tutor_bookmarked(request):
             data = json.loads(request.body)
             student_id = data.get('studentID')
             tutor_id = data.get('tutorID')
-
+ 
             if not student_id or not tutor_id:
                 return JsonResponse({'error': 'studentID and tutorID are required'}, status=400)
-
+ 
             # Check if the bookmark exists
             exists = BookmarkedTutors.objects.filter(student_id=student_id, tutor_id=tutor_id).exists()
             return JsonResponse({'isBookmarked': exists}, status=200)
@@ -499,10 +504,10 @@ def unbookmark_tutor(request):
             data = json.loads(request.body)
             student_id = data.get('studentID')
             tutor_id = data.get('tutorID')
-
+ 
             if not student_id or not tutor_id:
                 return JsonResponse({'error': 'studentID and tutorID are required'}, status=400)
-
+ 
             # Find and delete the bookmark
             bookmark = BookmarkedTutors.objects.filter(student_id=student_id, tutor_id=tutor_id).first()
             if bookmark:
@@ -515,22 +520,22 @@ def unbookmark_tutor(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
     
-
+ 
 @csrf_exempt
 def get_bookmarked_tutors(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             student_id = data.get('studentID')
-
+ 
             if not student_id:
                 return JsonResponse({'error': 'studentID is required'}, status=400)
-
+ 
             # Get all bookmarked tutors for the student
             bookmarks = BookmarkedTutors.objects.filter(student_id=student_id)
             if not bookmarks.exists():
                 return JsonResponse({'bookmarked_tutors': []}, status=200)
-
+ 
             # Retrieve tutor details for each bookmarked tutor
             bookmarked_tutors = []
             for bookmark in bookmarks:
@@ -544,13 +549,45 @@ def get_bookmarked_tutors(request):
                         'languages': tutor_profile.language,
                         'profile_picture': tutor_profile.profile_picture,  # Include S3 URL
                     })
-
+ 
             return JsonResponse({'bookmarked_tutors': bookmarked_tutors}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
-
+ 
+# @csrf_exempt
+# def add_review(request, tutor_id):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             student_id = data.get('studentID')
+#             rating = data.get('rating')
+#             comment = data.get('comment')
+ 
+#             # Fetch student and tutor instances
+#             student = StudentUser.objects.get(id=student_id)
+#             tutor = TutorProfile.objects.get(user_id=tutor_id)
+ 
+#             # Create and save the review
+#             review = TutorReview.objects.create(
+#                 student=student,
+#                 tutor=tutor,
+#                 rating=rating,
+#                 comment=comment
+#             )
+#             review.save()
+ 
+#             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
+#         except StudentUser.DoesNotExist:
+#             return JsonResponse({'error': 'Invalid studentID'}, status=404)
+#         except TutorProfile.DoesNotExist:
+#             return JsonResponse({'error': 'Invalid tutorID'}, status=404)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#     else:
+#         return JsonResponse({'error': 'Invalid request method'}, status=405)
+ 
 @csrf_exempt
 def add_review(request, tutor_id):
     if request.method == 'POST':
@@ -559,22 +596,25 @@ def add_review(request, tutor_id):
             student_id = data.get('studentID')
             rating = data.get('rating')
             comment = data.get('comment')
-
-            # # Validate input
-            # if not all([student_id, tutor_id, rating, comment]):
-            #     return JsonResponse({'error': 'You must be logged into an account to leave a review.'}, status=400)
-
-            # # Check if the student already submitted a review for this tutor
-            # if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
-            #     return JsonResponse({
-            #         'error': 'You have already submitted a review for this tutor. '
-            #                  'For questions or help, email help.tutorium@gmail.com'
-            #     }, status=400) 
-
+ 
+            # Validate input
+            if not all([student_id, tutor_id, rating, comment]):
+                return JsonResponse({'error': 'You must provide all the required fields.'}, status=400)
+ 
+            # Validate rating
+            if not (1 <= rating <= 5):
+                return JsonResponse({'error': 'Rating must be between 1 and 5.'}, status=400)
+ 
+            # Check if the student already submitted a review for this tutor
+            if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
+                return JsonResponse({
+                    'error': 'You have already submitted a review for this tutor.'
+                }, status=400)
+ 
             # Fetch student and tutor instances
             student = StudentUser.objects.get(id=student_id)
             tutor = TutorProfile.objects.get(user_id=tutor_id)
-
+ 
             # Create and save the review
             review = TutorReview.objects.create(
                 student=student,
@@ -583,7 +623,13 @@ def add_review(request, tutor_id):
                 comment=comment
             )
             review.save()
-
+ 
+            # Update tutor's average rating
+            reviews = TutorReview.objects.filter(tutor=tutor)
+            avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+            tutor.average_rating = round(avg_rating, 2)  # rounding to 2 decimal places
+            tutor.save()
+ 
             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
         except StudentUser.DoesNotExist:
             return JsonResponse({'error': 'Invalid studentID'}, status=404)
