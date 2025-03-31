@@ -1,4 +1,11 @@
 from django.db import models
+from django.contrib.auth.models import User
+from django.utils.timezone import now
+
+class TwoFactorCode(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
  
 class StudentUser(models.Model):
     first_name = models.CharField(max_length=100)

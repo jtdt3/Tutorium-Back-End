@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TwoFactorCode
 from django.conf import settings
 import json
 import boto3
@@ -11,12 +11,84 @@ from django.db.models import Q, Avg
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 from botocore.exceptions import BotoCoreError, ClientError
+from django.utils.timezone import now, timedelta
+from django.core.cache import cache  # Use Django cache for temporary storage
+import random
  
  
  
 logger = logging.getLogger(__name__)
- 
- 
+
+
+@csrf_exempt
+def send_2fa_code(request):
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+
+        # Ensure user is in the signup process
+        if not cache.get(f"signup_{email}"):
+            return JsonResponse({'error': 'Signup session not found'}, status=400)
+
+        # Generate a 6-digit random code
+        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+        # Store the code with an expiration time (e.g., 5 minutes)
+        cache.set(f"2fa_{email}", code, timeout=300)
+
+        # Send the code via email
+        send_mail(
+            'Your Authentication Code',
+            f'Your verification code is: {code}',
+            'help.tutorium@gmail.com',
+            [email],
+        )
+
+        return JsonResponse({'message': 'Code sent successfully!'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def verify_2fa_code(request):
+    """Step 3: Verify the 2FA code and finalize account creation."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            code = data.get('code')
+
+            stored_code = cache.get(f"2fa_{email}")
+
+            if stored_code and stored_code == code:
+                # Get user data from cache
+                user_data = cache.get(f"signup_{email}")
+
+                if not user_data:
+                    return JsonResponse({'error': 'Signup session expired'}, status=400)
+
+                # Create and save the user
+                student = StudentUser.objects.create(
+                    first_name=user_data['firstName'],
+                    last_name=user_data['lastName'],
+                    email=email,
+                    password=make_password(user_data['password']),
+                    user_type=user_data.get('userType', '')
+                )
+
+                # Cleanup cache
+                cache.delete(f"signup_{email}")
+                cache.delete(f"2fa_{email}")
+
+                return JsonResponse({'message': 'User created successfully!', 'user_id': student.id}, status=201)
+
+            return JsonResponse({'error': 'Invalid or expired code'}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 @csrf_exempt
 def signup(request):
     if request.method == 'POST':
@@ -38,6 +110,8 @@ def signup(request):
                 password=hashed_password,  # Consider hashing this in production
                 user_type=user_type
             )
+
+            cache.set(f"signup_{data['email']}", True, timeout=600)
  
             return JsonResponse({'message': 'User created successfully!', 'user_id': student.id}, status=201)
  
