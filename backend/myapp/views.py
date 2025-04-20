@@ -111,7 +111,12 @@ def signup(request):
                 user_type=user_type
             )
 
-            cache.set(f"signup_{data['email']}", True, timeout=600)
+            cache.set(f"signup_{data['email']}", {
+                'firstName': data['firstName'],
+                'lastName': data['lastName'],
+                'password': data['password'],
+                'userType': user_type
+            }, timeout=600)
  
             return JsonResponse({'message': 'User created successfully!', 'user_id': student.id}, status=201)
  
