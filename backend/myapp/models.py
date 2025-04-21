@@ -96,3 +96,13 @@ class TutorReview(models.Model):
     def __str__(self):
         return f"Review by {self.student.first_name} {self.student.last_name} for {self.tutor.user.first_name} {self.tutor.user.last_name}"
  
+
+class TutorAnalyticsView(models.Model):
+    tutor = models.ForeignKey(TutorProfile, on_delete=models.CASCADE, related_name='views')
+    viewer = models.ForeignKey(StudentUser, on_delete=models.SET_NULL, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    view_count = models.PositiveIntegerField(default=1)  # <--- NEW FIELD
+
+
+    def __str__(self):
+        return f"{self.viewer} viewed {self.tutor.user.first_name} on {self.timestamp}"

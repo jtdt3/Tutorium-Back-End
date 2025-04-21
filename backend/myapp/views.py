@@ -1,13 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TwoFactorCode
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TwoFactorCode, TutorAnalyticsView
 from django.conf import settings
 import json
 import boto3
 import logging
 import re
-from django.db.models import Q, Avg
+from django.db.models import Q, Avg, Sum
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 from botocore.exceptions import BotoCoreError, ClientError
@@ -718,3 +718,60 @@ def add_review(request, tutor_id):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+
+@csrf_exempt
+def log_tutor_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            tutor_id = data.get('tutor_id')
+            viewer_id = data.get('viewer_id')  # May be None
+
+            tutor = TutorProfile.objects.get(user__id=tutor_id)
+            viewer = None
+
+            if viewer_id:
+                try:
+                    viewer = StudentUser.objects.get(id=viewer_id)
+                except StudentUser.DoesNotExist:
+                    viewer = None  # Gracefully handle invalid viewer ID
+
+            # Try to find existing record (same tutor and viewer — or viewer is null)
+            analytics, created = TutorAnalyticsView.objects.get_or_create(
+                tutor=tutor,
+                viewer=viewer,
+                defaults={'view_count': 1}
+            )
+
+            if not created:
+                analytics.view_count += 1
+
+            analytics.save()
+
+            return JsonResponse({
+                'message': 'View logged successfully',
+                'view_count': analytics.view_count,
+                'created': created,
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+def get_view_count(request, user_id):
+    try:
+        tutor_profile = TutorProfile.objects.get(user__id=user_id)
+
+        # Sum the view_count for all analytics records for this tutor
+        total_views = TutorAnalyticsView.objects.filter(tutor=tutor_profile).aggregate(
+            total=Sum('view_count')
+        )['total'] or 0
+
+        return JsonResponse({'view_count': total_views})
+    
+    except TutorProfile.DoesNotExist:
+        return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+

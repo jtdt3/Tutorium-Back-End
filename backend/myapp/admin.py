@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TutorAnalyticsView
 
 @admin.register(StudentUser)
 class StudentUserAdmin(admin.ModelAdmin):
@@ -42,3 +42,10 @@ class TutorReviewAdmin(admin.ModelAdmin):
         Customize the queryset to include related student and tutor data for better performance in the admin.
         """
         return super().get_queryset(request).select_related('student', 'tutor', 'tutor__user')
+    
+@admin.register(TutorAnalyticsView)
+class TutorAnalyticsViewAdmin(admin.ModelAdmin):
+    list_display = ('tutor', 'viewer', 'timestamp', 'view_count')
+    search_fields = ('tutor__user__first_name', 'tutor__user__last_name', 'viewer__first_name', 'viewer__last_name')
+    list_filter = ('timestamp',)
+    ordering = ('-timestamp',)
