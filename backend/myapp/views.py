@@ -14,7 +14,10 @@ from botocore.exceptions import BotoCoreError, ClientError
 from django.utils.timezone import now, timedelta
 from django.core.cache import cache  # Use Django cache for temporary storage
 import random
- 
+from django.db.models.functions import TruncDate
+from django.utils.timezone import now
+from datetime import date
+
  
  
 logger = logging.getLogger(__name__)
@@ -720,6 +723,46 @@ def add_review(request, tutor_id):
         return JsonResponse({'error': 'Invalid request method'}, status=405)
     
 
+# @csrf_exempt
+# def log_tutor_view(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             tutor_id = data.get('tutor_id')
+#             viewer_id = data.get('viewer_id')  # May be None
+
+#             tutor = TutorProfile.objects.get(user__id=tutor_id)
+#             viewer = None
+
+#             if viewer_id:
+#                 try:
+#                     viewer = StudentUser.objects.get(id=viewer_id)
+#                 except StudentUser.DoesNotExist:
+#                     viewer = None  # Gracefully handle invalid viewer ID
+
+#             # Try to find existing record (same tutor and viewer — or viewer is null)
+#             analytics, created = TutorAnalyticsView.objects.get_or_create(
+#                 tutor=tutor,
+#                 viewer=viewer,
+#                 defaults={'view_count': 1}
+#             )
+
+#             if not created:
+#                 analytics.view_count += 1
+
+#             analytics.save()
+
+#             return JsonResponse({
+#                 'message': 'View logged successfully',
+#                 'view_count': analytics.view_count,
+#                 'created': created,
+#             })
+
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=400)
+
+#     return JsonResponse({'error': 'Invalid method'}, status=405)
+
 @csrf_exempt
 def log_tutor_view(request):
     if request.method == 'POST':
@@ -735,19 +778,31 @@ def log_tutor_view(request):
                 try:
                     viewer = StudentUser.objects.get(id=viewer_id)
                 except StudentUser.DoesNotExist:
-                    viewer = None  # Gracefully handle invalid viewer ID
+                    viewer = None
 
-            # Try to find existing record (same tutor and viewer — or viewer is null)
-            analytics, created = TutorAnalyticsView.objects.get_or_create(
+            today = date.today()
+
+            # Find today's record for this tutor and viewer (or None)
+            analytics = TutorAnalyticsView.objects.annotate(
+                view_date=TruncDate('timestamp')
+            ).filter(
                 tutor=tutor,
                 viewer=viewer,
-                defaults={'view_count': 1}
-            )
+                view_date=today
+            ).first()
 
-            if not created:
+            if analytics:
                 analytics.view_count += 1
-
-            analytics.save()
+                analytics.save()
+                created = False
+            else:
+                analytics = TutorAnalyticsView.objects.create(
+                    tutor=tutor,
+                    viewer=viewer,
+                    view_count=1,
+                    timestamp=now()  # Optional; auto_now_add covers this
+                )
+                created = True
 
             return JsonResponse({
                 'message': 'View logged successfully',
@@ -774,4 +829,30 @@ def get_view_count(request, user_id):
     
     except TutorProfile.DoesNotExist:
         return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+    
 
+#@api_view(['GET'])
+def get_views_per_day(request, user_id):
+    try:
+        tutor_profile = TutorProfile.objects.get(user__id=user_id)
+
+        # Group by date, sum view_count
+        views_by_day = (
+            TutorAnalyticsView.objects
+            .filter(tutor=tutor_profile)
+            .annotate(date=TruncDate('timestamp'))
+            .values('date')
+            .annotate(total_views=Sum('view_count'))
+            .order_by('date')
+        )
+
+        # Convert QuerySet to a simple list of {date, total_views}
+        data = [
+            {'date': entry['date'].strftime('%Y-%m-%d'), 'views': entry['total_views']}
+            for entry in views_by_day
+        ]
+
+        return JsonResponse({'history': data})
+
+    except TutorProfile.DoesNotExist:
+        return JsonResponse({'error': 'Tutor profile not found'}, status=404)
