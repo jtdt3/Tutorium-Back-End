@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day
+from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/log-view/', log_tutor_view, name='log_tutor_view'),
     path('api/tutor/<int:user_id>/view-count/', get_view_count, name='get_view_count'),
     path('api/tutor/<int:user_id>/view-history/', get_views_per_day, name='get_view_history'),
+    path('api/tutor/<int:user_id>/viewers/', get_viewers, name='get_viewers'),
 
 
 

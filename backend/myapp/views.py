@@ -856,3 +856,38 @@ def get_views_per_day(request, user_id):
 
     except TutorProfile.DoesNotExist:
         return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+
+
+def get_viewers(request, user_id):
+    try:
+        tutor_profile = TutorProfile.objects.get(user__id=user_id)
+
+        views = (
+            TutorAnalyticsView.objects
+            .filter(tutor=tutor_profile)
+            .order_by('-timestamp')
+            .select_related('viewer')
+        )
+
+        data = []
+        for view in views:
+            if view.viewer:
+                name = {
+                    'first_name': view.viewer.first_name,
+                    'last_name': view.viewer.last_name,
+                }
+            else:
+                name = {
+                    'first_name': 'Anonymous',
+                    'last_name': '',
+                }
+
+            data.append({
+                **name,
+                'timestamp': view.timestamp,
+            })
+
+        return JsonResponse({'viewers': data})
+
+    except TutorProfile.DoesNotExist:
+        return JsonResponse({'error': 'Tutor profile not found'}, status=404)

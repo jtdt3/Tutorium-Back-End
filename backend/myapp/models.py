@@ -106,3 +106,5 @@ class TutorAnalyticsView(models.Model):
 
     def __str__(self):
         return f"{self.viewer} viewed {self.tutor.user.first_name} on {self.timestamp}"
+    
+
