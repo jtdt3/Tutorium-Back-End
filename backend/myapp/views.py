@@ -782,14 +782,20 @@ def log_tutor_view(request):
 
             today = date.today()
 
-            # Find today's record for this tutor and viewer (or None)
-            analytics = TutorAnalyticsView.objects.annotate(
-                view_date=TruncDate('timestamp')
-            ).filter(
+            # # Find today's record for this tutor and viewer (or None)
+            # analytics = TutorAnalyticsView.objects.annotate(
+            #     view_date=TruncDate('timestamp')
+            # ).filter(
+            #     tutor=tutor,
+            #     viewer=viewer,
+            #     view_date=today
+            # ).first()
+
+            TutorAnalyticsView.objects.create(
                 tutor=tutor,
                 viewer=viewer,
-                view_date=today
-            ).first()
+                view_count=1  # optional if default is 1
+            )
 
             if analytics:
                 analytics.view_count += 1
