@@ -15,12 +15,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers, save_request_form_info, get_tutor_request_count, get_tutor_requests
+from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers, save_request_form_info, get_tutor_request_count, get_tutor_requests, initiate_signup
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/signup/', signup, name='signup'),
     path('api/application', application, name='application'),
+    path('api/initiate-signup/', initiate_signup, name='initiate_signup'),
     path('api/send-2fa-code/', send_2fa_code, name='send_2fa_code'),
     path('api/verify-2fa-code/', verify_2fa_code, name='verify_2fa_code'),
     path('api/tutor-approve-status/', tutor_approve_status, name='tutor_approve_status'),

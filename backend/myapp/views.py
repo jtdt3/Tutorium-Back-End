@@ -53,7 +53,6 @@ def send_2fa_code(request):
 
 @csrf_exempt
 def verify_2fa_code(request):
-    """Step 3: Verify the 2FA code and finalize account creation."""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -90,6 +89,41 @@ def verify_2fa_code(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def initiate_signup(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+
+            if not email:
+                return JsonResponse({'error': 'Email is required'}, status=400)
+
+            # Store signup data in cache
+            cache.set(f"signup_{email}", data, timeout=600)
+
+            # Generate and cache 2FA code
+            code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            cache.set(f"2fa_{email}", code, timeout=300)
+
+            # Send 2FA code by email
+            send_mail(
+                'Your Verification Code',
+                f'Your verification code is: {code}',
+                'help.tutorium@gmail.com',
+                [email],
+            )
+
+            print(f"Code for {email}: {code}")
+
+            return JsonResponse({'message': 'Verification code sent'}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 @csrf_exempt
 def signup(request):
