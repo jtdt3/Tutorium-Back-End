@@ -1,13 +1,13 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
-from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TwoFactorCode, TutorAnalyticsView
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TwoFactorCode, TutorAnalyticsView, RequestFormInfo
 from django.conf import settings
 import json
 import boto3
 import logging
 import re
-from django.db.models import Q, Avg, Sum
+from django.db.models import Q, Avg, Sum, Count
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password, check_password
 from botocore.exceptions import BotoCoreError, ClientError
@@ -17,7 +17,6 @@ import random
 from django.db.models.functions import TruncDate
 from django.utils.timezone import now
 from datetime import date
-
  
  
 logger = logging.getLogger(__name__)
@@ -464,12 +463,6 @@ def signin(request):
     else:
         return JsonResponse({'status': 'fail', 'message': 'Invalid request method'}, status=405)
  
- 
-from django.core.mail import send_mail
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-import json
- 
 @csrf_exempt
 def send_tutor_request_email(request):
     if request.method == 'POST':
@@ -897,3 +890,57 @@ def get_viewers(request, user_id):
 
     except TutorProfile.DoesNotExist:
         return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+    
+
+@csrf_exempt
+def save_request_form_info(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            requester_first_name = data.get('requesterFirstName')
+            requester_last_name = data.get('requesterLastName')
+            requester_email = data.get('requesterEmail')
+            requester_description = data.get('requesterDescription')
+            tutor_id = data.get('tutorID')
+
+            # Save to database
+            RequestFormInfo.objects.create(
+                requesterFirstName=requester_first_name,
+                requesterLastName=requester_last_name,
+                requesterEmail=requester_email,
+                requesterDescription=requester_description,
+                tutorID=tutor_id
+            )
+
+            return JsonResponse({'message': 'Request form info saved successfully!'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def get_tutor_request_count(request, tutor_id):
+    if request.method == 'GET':
+        try:
+            request_count = RequestFormInfo.objects.filter(tutorID=tutor_id).count()
+            return JsonResponse({'request_count': request_count})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def get_tutor_requests(request, tutor_id):
+    if request.method == 'GET':
+        try:
+            requests = RequestFormInfo.objects.filter(tutorID=tutor_id).order_by('-created_at')
+            request_list = [
+                {
+                    'requesterDescription': r.requesterDescription,
+                    'created_at': r.created_at.isoformat(),
+                }
+                for r in requests
+            ]
+            return JsonResponse({'requests': request_list})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

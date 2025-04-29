@@ -108,3 +108,15 @@ class TutorAnalyticsView(models.Model):
         return f"{self.viewer} viewed {self.tutor.user.first_name} on {self.timestamp}"
     
 
+class RequestFormInfo(models.Model):
+    requesterFirstName = models.CharField(max_length=100)
+    requesterLastName = models.CharField(max_length=100)
+    requesterEmail = models.EmailField()
+    requesterDescription = models.TextField()
+    tutorID = models.IntegerField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Request from {self.requesterFirstName} {self.requesterLastName} for Tutor {self.tutorID}"
+

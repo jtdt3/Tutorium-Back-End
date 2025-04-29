@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TutorAnalyticsView
+from .models import StudentUser, TutorApplication, TutorProfile, BookmarkedTutors, TutorReview, TutorAnalyticsView, RequestFormInfo
 
 @admin.register(StudentUser)
 class StudentUserAdmin(admin.ModelAdmin):
@@ -49,3 +49,10 @@ class TutorAnalyticsViewAdmin(admin.ModelAdmin):
     search_fields = ('tutor__user__first_name', 'tutor__user__last_name', 'viewer__first_name', 'viewer__last_name')
     list_filter = ('timestamp',)
     ordering = ('-timestamp',)
+
+@admin.register(RequestFormInfo)
+class RequestFormInfoAdmin(admin.ModelAdmin):
+    list_display = ('requesterFirstName', 'requesterLastName', 'requesterEmail', 'requesterDescription', 'tutorID', 'created_at')
+    search_fields = ('requesterFirstName', 'requesterLastName', 'requesterEmail', 'tutorID')
+    list_filter = ('created_at',)
+    ordering = ('-created_at',)
