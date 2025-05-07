@@ -27,18 +27,16 @@ def send_2fa_code(request):
     try:
         data = json.loads(request.body)
         email = data.get('email')
+        mode = data.get('mode', 'signup')  # default to signup
 
-        # Ensure user is in the signup process
-        if not cache.get(f"signup_{email}"):
+        # If it's a signin flow, skip the signup session check
+        if mode == 'signup' and not cache.get(f"signup_{email}"):
             return JsonResponse({'error': 'Signup session not found'}, status=400)
 
-        # Generate a 6-digit random code
-        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-        # Store the code with an expiration time (e.g., 5 minutes)
+        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
         cache.set(f"2fa_{email}", code, timeout=300)
 
-        # Send the code via email
         send_mail(
             'Your Authentication Code',
             f'Your verification code is: {code}',
@@ -46,10 +44,13 @@ def send_2fa_code(request):
             [email],
         )
 
+        print(f"2FA Code for {email} ({mode}): {code}")
+
         return JsonResponse({'message': 'Code sent successfully!'}, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 def verify_2fa_code(request):
@@ -58,30 +59,44 @@ def verify_2fa_code(request):
             data = json.loads(request.body)
             email = data.get('email')
             code = data.get('code')
+            mode = data.get('mode', 'signin')  # default to signin
 
+            print(f"Verifying {email} with code {code} (mode: {mode})")
             stored_code = cache.get(f"2fa_{email}")
+            print(f"Stored 2FA code for {email}: {stored_code}")
 
             if stored_code and stored_code == code:
-                # Get user data from cache
-                user_data = cache.get(f"signup_{email}")
+                if mode == 'signup':
+                    user_data = cache.get(f"signup_{email}")
+                    if not user_data:
+                        return JsonResponse({'error': 'Signup session expired'}, status=400)
 
-                if not user_data:
-                    return JsonResponse({'error': 'Signup session expired'}, status=400)
+                    student = StudentUser.objects.create(
+                        first_name=user_data['firstName'],
+                        last_name=user_data['lastName'],
+                        email=email,
+                        password=make_password(user_data['password']),
+                        user_type=user_data.get('userType', '')
+                    )
 
-                # Create and save the user
-                student = StudentUser.objects.create(
-                    first_name=user_data['firstName'],
-                    last_name=user_data['lastName'],
-                    email=email,
-                    password=make_password(user_data['password']),
-                    user_type=user_data.get('userType', '')
-                )
+                    cache.delete(f"signup_{email}")
+                    cache.delete(f"2fa_{email}")
+                    return JsonResponse({'message': 'User created successfully!', 'user_id': student.id}, status=201)
 
-                # Cleanup cache
-                cache.delete(f"signup_{email}")
-                cache.delete(f"2fa_{email}")
+                elif mode == 'signin':
+                    try:
+                        user = StudentUser.objects.get(email=email)
+                    except StudentUser.DoesNotExist:
+                        return JsonResponse({'error': 'User does not exist'}, status=404)
 
-                return JsonResponse({'message': 'User created successfully!', 'user_id': student.id}, status=201)
+                    cache.delete(f"2fa_{email}")
+                    return JsonResponse({
+                        'message': 'Signed in successfully!',
+                        'user_id': user.id,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'user_type': user.user_type,
+                    }, status=200)
 
             return JsonResponse({'error': 'Invalid or expired code'}, status=400)
 
@@ -89,6 +104,7 @@ def verify_2fa_code(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 @csrf_exempt
 def initiate_signup(request):
