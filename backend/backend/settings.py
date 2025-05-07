@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*g!qp-d(ebolu6@eh6)5y7zupaou@@j^d%u&cl5l@7a5$e-1#5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['api.tutrio.org', '34.209.23.40']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -76,6 +76,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'backend.urls'
+
+
+# Allow frontend domain
+CORS_ALLOWED_ORIGINS = [
+    "https://tutrio.org",
+]
 
 TEMPLATES = [
     {
@@ -157,6 +163,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
