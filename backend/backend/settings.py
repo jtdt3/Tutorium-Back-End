@@ -81,6 +81,8 @@ ROOT_URLCONF = 'backend.urls'
 # Allow frontend domain
 CORS_ALLOWED_ORIGINS = [
     "https://tutrio.org",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 TEMPLATES = [
