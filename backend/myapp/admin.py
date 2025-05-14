@@ -30,8 +30,18 @@ class TutorProfileAdmin(admin.ModelAdmin):
         'profile_complete',
         'average_rating',
     )
-    search_fields = ('user__first_name', 'user__last_name', 'subjects', 'location', 'language')
-    list_filter = ('gender', 'location', 'language', 'profile_complete')
+    fields = (
+        'user',
+        'bio',
+        'gender',
+        'hourly_rate',
+        'subjects',
+        'location',
+        'language',
+        'profile_picture',
+        'profile_complete',
+        'average_rating',
+    )
 
 
 # Register the BookmarkedTutors model
