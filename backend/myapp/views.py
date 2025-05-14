@@ -469,7 +469,7 @@ def get_tutor_profile(request):
 #     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 
- @csrf_exempt
+@csrf_exempt
 def search_tutors(request):
     if request.method == 'GET':
         subjects = request.GET.getlist('subjects')  # AND logic
