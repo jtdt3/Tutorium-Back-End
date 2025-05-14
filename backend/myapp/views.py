@@ -472,40 +472,44 @@ def get_tutor_profile(request):
 @csrf_exempt
 def search_tutors(request):
     if request.method == 'GET':
-        # Parse comma-separated query parameters as lists
-        subjects = request.GET.get('subjects', '')
-        locations = request.GET.get('locations', '')
-        languages = request.GET.get('languages', '')
-        gender = request.GET.get('gender', '')
-        min_rate = request.GET.get('min_rate')
-        max_rate = request.GET.get('max_rate')
+        subjects = request.GET.getlist('subjects[]')  # list of strings
+        locations = request.GET.getlist('locations[]')
+        languages = request.GET.getlist('languages[]')
+        gender = request.GET.get('gender', '').strip()
+        max_hourly_rate = request.GET.get('hourly_rate', '').strip()
 
-        subject_list = [s.strip() for s in subjects.split(',') if s.strip()]
-        location_list = [l.strip() for l in locations.split(',') if l.strip()]
-        language_list = [l.strip() for l in languages.split(',') if l.strip()]
+        filters = Q(profile_complete='yes')
 
-        queryset = TutorProfile.objects.filter(profile_complete='yes')
+        # Subjects (AND logic)
+        for subject in subjects:
+            filters &= Q(subjects__icontains=subject)
 
-        # AND filter for each selected subject
-        for s in subject_list:
-            queryset = queryset.filter(subjects__icontains=s)
+        # Locations (OR logic)
+        if locations:
+            location_filter = Q()
+            for loc in locations:
+                location_filter |= Q(location__icontains=loc)
+            filters &= location_filter
 
-        for l in location_list:
-            queryset = queryset.filter(location__icontains=l)
+        # Languages (OR logic)
+        if languages:
+            language_filter = Q()
+            for lang in languages:
+                language_filter |= Q(language__icontains=lang)
+            filters &= language_filter
 
-        for lang in language_list:
-            queryset = queryset.filter(language__icontains=lang)
-
+        # Gender (exact match)
         if gender:
-            queryset = queryset.filter(gender=gender)
+            filters &= Q(gender=gender)
 
-        if min_rate:
-            queryset = queryset.filter(hourly_rate__gte=min_rate)
+        # Hourly Rate (less than or equal)
+        if max_hourly_rate:
+            try:
+                filters &= Q(hourly_rate__lte=float(max_hourly_rate))
+            except ValueError:
+                return JsonResponse({'error': 'Invalid hourly_rate value'}, status=400)
 
-        if max_rate:
-            queryset = queryset.filter(hourly_rate__lte=max_rate)
-
-        tutors = queryset.values(
+        tutors = TutorProfile.objects.filter(filters).values(
             'user__id',
             'user__first_name',
             'user__last_name',
