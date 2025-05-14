@@ -480,7 +480,9 @@ def tutor_details(request, tutor_id):
                 'subjects',
                 'location',
                 'language',
-                'average_rating'  # Include average_rating in the response
+                'average_rating',  # Include average_rating in the response
+                'gender',          # <-- Add this
+                'hourly_rate'      # <-- And this
             ).first()
  
             if not tutor:
