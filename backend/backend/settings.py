@@ -29,6 +29,16 @@ ALLOWED_HOSTS = ['api.tutrio.org', '34.209.23.40']
 
 CORS_ALLOW_ALL_ORIGINS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://api.tutrio.org',
+    'https://tutrio.org'
+]
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+
 EMAIL_BACKEND = 'django_ses.SESBackend'
 # AWS credentials
 AWS_ACCESS_KEY_ID = 'AKIARYEUC2NWY3PWGBEH'# Replace with your AWS Access Key
