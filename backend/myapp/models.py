@@ -73,7 +73,7 @@ class TutorProfile(models.Model):
         choices=[('yes', 'Yes'), ('no', 'No')],
         default='no'
     )
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], blank=True)
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], blank=True, null=True)
     hourly_rate = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)  # Add this field
  
