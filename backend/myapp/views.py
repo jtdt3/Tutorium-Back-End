@@ -420,7 +420,9 @@ def get_tutor_profile(request):
                     'subjects': tutor_profile.subjects,
                     'location': tutor_profile.location,
                     'language': tutor_profile.language,
-                    'profile_complete': tutor_profile.profile_complete
+                    'profile_complete': tutor_profile.profile_complete,
+                    'gender': tutor_profile.gender,
+                    'hourly_rate': str(tutor_profile.hourly_rate) if tutor_profile.hourly_rate is not None else '',
                 }, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'error': 'Profile not found'}, status=404)
