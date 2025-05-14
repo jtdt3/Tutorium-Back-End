@@ -433,24 +433,82 @@ def get_tutor_profile(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
  
  
+# @csrf_exempt
+# def search_tutors(request):
+#     if request.method == 'GET':
+#         subject = request.GET.get('subject', '').strip()
+#         location = request.GET.get('location', '').strip()
+#         language = request.GET.get('language', '').strip()
+ 
+#         # Start with all tutors and apply filters for all aspects of the query
+#         filters = Q()
+#         if subject:
+#             filters &= Q(subjects__icontains=subject)  # Subject must contain the query
+#         if location:
+#             filters &= Q(location__icontains=location)  # Location must contain the query
+#         if language:
+#             filters &= Q(language__icontains=language)  # Language must contain the query
+ 
+#         # Only return tutors where all filters match and profile is complete
+#         tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
+#             'user__id',
+#             'user__first_name',
+#             'user__last_name',
+#             'profile_picture',
+#             'subjects',
+#             'location',
+#             'language',
+#             'bio',
+#             'average_rating',
+#             'gender',
+#             'hourly_rate',  # <--- ADD THIS
+#         )
+ 
+#         return JsonResponse(list(tutors), safe=False)
+ 
+#     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
 @csrf_exempt
 def search_tutors(request):
     if request.method == 'GET':
-        subject = request.GET.get('subject', '').strip()
-        location = request.GET.get('location', '').strip()
-        language = request.GET.get('language', '').strip()
- 
-        # Start with all tutors and apply filters for all aspects of the query
-        filters = Q()
-        if subject:
-            filters &= Q(subjects__icontains=subject)  # Subject must contain the query
-        if location:
-            filters &= Q(location__icontains=location)  # Location must contain the query
-        if language:
-            filters &= Q(language__icontains=language)  # Language must contain the query
- 
-        # Only return tutors where all filters match and profile is complete
-        tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
+        subjects = request.GET.getlist('subjects')  # multiple allowed
+        locations = request.GET.getlist('locations')
+        languages = request.GET.getlist('languages')
+        gender = request.GET.get('gender', '').strip()
+        min_rate = request.GET.get('min_rate', '').strip()
+        max_rate = request.GET.get('max_rate', '').strip()
+
+        filters = Q(profile_complete='yes')
+
+        if subjects:
+            subject_filters = Q()
+            for subject in subjects:
+                subject_filters |= Q(subjects__icontains=subject)
+            filters &= subject_filters
+
+        if locations:
+            location_filters = Q()
+            for loc in locations:
+                location_filters |= Q(location__icontains=loc)
+            filters &= location_filters
+
+        if languages:
+            language_filters = Q()
+            for lang in languages:
+                language_filters |= Q(language__icontains=lang)
+            filters &= language_filters
+
+        if gender:
+            filters &= Q(gender=gender)
+
+        if min_rate:
+            filters &= Q(hourly_rate__gte=min_rate)
+
+        if max_rate:
+            filters &= Q(hourly_rate__lte=max_rate)
+
+        tutors = TutorProfile.objects.filter(filters).values(
             'user__id',
             'user__first_name',
             'user__last_name',
@@ -461,12 +519,13 @@ def search_tutors(request):
             'bio',
             'average_rating',
             'gender',
-            'hourly_rate',  # <--- ADD THIS
+            'hourly_rate',
         )
- 
+
         return JsonResponse(list(tutors), safe=False)
- 
+
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
  
  
 @csrf_exempt
