@@ -433,83 +433,24 @@ def get_tutor_profile(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
  
  
-# @csrf_exempt
-# def search_tutors(request):
-#     if request.method == 'GET':
-#         subject = request.GET.get('subject', '').strip()
-#         location = request.GET.get('location', '').strip()
-#         language = request.GET.get('language', '').strip()
- 
-#         # Start with all tutors and apply filters for all aspects of the query
-#         filters = Q()
-#         if subject:
-#             filters &= Q(subjects__icontains=subject)  # Subject must contain the query
-#         if location:
-#             filters &= Q(location__icontains=location)  # Location must contain the query
-#         if language:
-#             filters &= Q(language__icontains=language)  # Language must contain the query
- 
-#         # Only return tutors where all filters match and profile is complete
-#         tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
-#             'user__id',
-#             'user__first_name',
-#             'user__last_name',
-#             'profile_picture',
-#             'subjects',
-#             'location',
-#             'language',
-#             'bio',
-#             'average_rating',
-#             'gender',
-#             'hourly_rate',  # <--- ADD THIS
-#         )
- 
-#         return JsonResponse(list(tutors), safe=False)
- 
-#     return JsonResponse({'error': 'Invalid request method'}, status=400)
-
-
 @csrf_exempt
 def search_tutors(request):
     if request.method == 'GET':
-        subjects = request.GET.getlist('subjects[]')  # list of strings
-        locations = request.GET.getlist('locations[]')
-        languages = request.GET.getlist('languages[]')
-        gender = request.GET.get('gender', '').strip()
-        max_hourly_rate = request.GET.get('hourly_rate', '').strip()
-
-        filters = Q(profile_complete='yes')
-
-        # Subjects (AND logic)
-        for subject in subjects:
-            filters &= Q(subjects__icontains=subject)
-
-        # Locations (OR logic)
-        if locations:
-            location_filter = Q()
-            for loc in locations:
-                location_filter |= Q(location__icontains=loc)
-            filters &= location_filter
-
-        # Languages (OR logic)
-        if languages:
-            language_filter = Q()
-            for lang in languages:
-                language_filter |= Q(language__icontains=lang)
-            filters &= language_filter
-
-        # Gender (exact match)
-        if gender:
-            filters &= Q(gender=gender)
-
-        # Hourly Rate (less than or equal)
-        if max_hourly_rate:
-            try:
-                filters &= Q(hourly_rate__lte=float(max_hourly_rate))
-            except ValueError:
-                return JsonResponse({'error': 'Invalid hourly_rate value'}, status=400)
-
-        tutors = TutorProfile.objects.filter(filters).values(
+        subject = request.GET.get('subject', '').strip()
+        location = request.GET.get('location', '').strip()
+        language = request.GET.get('language', '').strip()
+ 
+        # Start with all tutors and apply filters for all aspects of the query
+        filters = Q()
+        if subject:
+            filters &= Q(subjects__icontains=subject)  # Subject must contain the query
+        if location:
+            filters &= Q(location__icontains=location)  # Location must contain the query
+        if language:
+            filters &= Q(language__icontains=language)  # Language must contain the query
+ 
+        # Only return tutors where all filters match and profile is complete
+        tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
             'user__id',
             'user__first_name',
             'user__last_name',
@@ -520,12 +461,13 @@ def search_tutors(request):
             'bio',
             'average_rating',
             'gender',
-            'hourly_rate',
+            'hourly_rate',  # <--- ADD THIS
         )
-
+ 
         return JsonResponse(list(tutors), safe=False)
-
+ 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
 
  
  
