@@ -332,6 +332,9 @@ def save_tutor_profile(request):
             language = request.POST.get('language')  # Comma-separated string
             profile_picture = request.FILES.get('profilePic')
             existing_profile_picture = request.POST.get('existingProfilePic')
+            gender = request.POST.get('gender')
+            hourly_rate = request.POST.get('hourly_rate')
+
  
             if not user_id:
                 return JsonResponse({'error': 'User ID is required'}, status=400)
@@ -384,6 +387,8 @@ def save_tutor_profile(request):
                     'language': language,
                     'profile_picture': profile_pic_url,
                     'profile_complete': 'yes',
+                    'gender': gender,
+                    'hourly_rate': hourly_rate,
                 }
             )
  
