@@ -457,7 +457,9 @@ def search_tutors(request):
             'location',
             'language',
             'bio',
-            'average_rating'
+            'average_rating',
+            'gender',
+            'hourly_rate',  # <--- ADD THIS
         )
  
         return JsonResponse(list(tutors), safe=False)
