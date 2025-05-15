@@ -19,7 +19,29 @@ class TutorApplicationAdmin(admin.ModelAdmin):
 
 @admin.register(TutorProfile)
 class TutorProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'profile_complete')
+    list_display = (
+        'user',
+        'bio',
+        'gender',
+        'hourly_rate',
+        'subjects',
+        'location',
+        'language',
+        'profile_complete',
+        'average_rating',
+    )
+    fields = (
+        'user',
+        'bio',
+        'gender',
+        'hourly_rate',
+        'subjects',
+        'location',
+        'language',
+        'profile_picture',
+        'profile_complete',
+        'average_rating',
+    )
 
 
 # Register the BookmarkedTutors model

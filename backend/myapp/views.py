@@ -332,6 +332,9 @@ def save_tutor_profile(request):
             language = request.POST.get('language')  # Comma-separated string
             profile_picture = request.FILES.get('profilePic')
             existing_profile_picture = request.POST.get('existingProfilePic')
+            gender = request.POST.get('gender')
+            hourly_rate = request.POST.get('hourly_rate')
+
  
             if not user_id:
                 return JsonResponse({'error': 'User ID is required'}, status=400)
@@ -384,6 +387,8 @@ def save_tutor_profile(request):
                     'language': language,
                     'profile_picture': profile_pic_url,
                     'profile_complete': 'yes',
+                    'gender': gender,
+                    'hourly_rate': hourly_rate,
                 }
             )
  
@@ -415,7 +420,9 @@ def get_tutor_profile(request):
                     'subjects': tutor_profile.subjects,
                     'location': tutor_profile.location,
                     'language': tutor_profile.language,
-                    'profile_complete': tutor_profile.profile_complete
+                    'profile_complete': tutor_profile.profile_complete,
+                    'gender': tutor_profile.gender,
+                    'hourly_rate': str(tutor_profile.hourly_rate) if tutor_profile.hourly_rate is not None else '',
                 }, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'error': 'Profile not found'}, status=404)
@@ -426,23 +433,82 @@ def get_tutor_profile(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
  
  
+# @csrf_exempt
+# def search_tutors(request):
+#     if request.method == 'GET':
+#         subject = request.GET.get('subject', '').strip()
+#         location = request.GET.get('location', '').strip()
+#         language = request.GET.get('language', '').strip()
+ 
+#         # Start with all tutors and apply filters for all aspects of the query
+#         filters = Q()
+#         if subject:
+#             filters &= Q(subjects__icontains=subject)  # Subject must contain the query
+#         if location:
+#             filters &= Q(location__icontains=location)  # Location must contain the query
+#         if language:
+#             filters &= Q(language__icontains=language)  # Language must contain the query
+ 
+#         # Only return tutors where all filters match and profile is complete
+#         tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
+#             'user__id',
+#             'user__first_name',
+#             'user__last_name',
+#             'profile_picture',
+#             'subjects',
+#             'location',
+#             'language',
+#             'bio',
+#             'average_rating',
+#             'gender',
+#             'hourly_rate',  # <--- ADD THIS
+#         )
+ 
+#         return JsonResponse(list(tutors), safe=False)
+ 
+#     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+
 @csrf_exempt
 def search_tutors(request):
     if request.method == 'GET':
-        subject = request.GET.get('subject', '').strip()
-        location = request.GET.get('location', '').strip()
-        language = request.GET.get('language', '').strip()
- 
-        # Start with all tutors and apply filters for all aspects of the query
+        subjects = request.GET.getlist('subjects')  # AND logic
+        locations = request.GET.getlist('locations')  # OR logic
+        languages = request.GET.getlist('languages')  # OR logic
+        gender = request.GET.get('gender', '').strip()
+        max_rate = request.GET.get('max_rate', '').strip()
+
         filters = Q()
-        if subject:
-            filters &= Q(subjects__icontains=subject)  # Subject must contain the query
-        if location:
-            filters &= Q(location__icontains=location)  # Location must contain the query
-        if language:
-            filters &= Q(language__icontains=language)  # Language must contain the query
- 
-        # Only return tutors where all filters match and profile is complete
+
+        # Subjects: AND logic
+        for subject in subjects:
+            filters &= Q(subjects__icontains=subject)
+
+        # Locations: OR logic
+        if locations:
+            location_q = Q()
+            for loc in locations:
+                location_q |= Q(location__icontains=loc)
+            filters &= location_q
+
+        # Languages: OR logic
+        if languages:
+            language_q = Q()
+            for lang in languages:
+                language_q |= Q(language__icontains=lang)
+            filters &= language_q
+
+        # Gender filter
+        if gender:
+            filters &= Q(gender__iexact=gender)
+
+        # Hourly Rate filter
+        if max_rate:
+            try:
+                filters &= Q(hourly_rate__lte=float(max_rate))
+            except ValueError:
+                pass
+
         tutors = TutorProfile.objects.filter(filters, profile_complete='yes').values(
             'user__id',
             'user__first_name',
@@ -452,13 +518,14 @@ def search_tutors(request):
             'location',
             'language',
             'bio',
-            'average_rating'
+            'average_rating',
+            'gender',
+            'hourly_rate',
         )
- 
+
         return JsonResponse(list(tutors), safe=False)
- 
+
     return JsonResponse({'error': 'Invalid request method'}, status=400)
- 
  
 @csrf_exempt
 def tutor_details(request, tutor_id):
@@ -473,7 +540,9 @@ def tutor_details(request, tutor_id):
                 'subjects',
                 'location',
                 'language',
-                'average_rating'  # Include average_rating in the response
+                'average_rating',  # Include average_rating in the response
+                'gender',          # <-- Add this
+                'hourly_rate'      # <-- And this
             ).first()
  
             if not tutor:
