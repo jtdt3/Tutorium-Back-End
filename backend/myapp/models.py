@@ -88,15 +88,26 @@ class BookmarkedTutors(models.Model):
     def __str__(self):
         return f"Student {self.student_id} bookmarked Tutor {self.tutor_id}"
  
-class TutorReview(models.Model):
-    student = models.ForeignKey(StudentUser, on_delete=models.CASCADE)
-    tutor = models.ForeignKey(TutorProfile, on_delete=models.CASCADE)
-    rating = models.IntegerField()  # Rating as an integer (e.g., 1-5)
-    comment = models.TextField()  # Review text
-    created_at = models.DateTimeField(auto_now_add=True)
+# class TutorReview(models.Model):
+#     student = models.ForeignKey(StudentUser, on_delete=models.CASCADE)
+#     tutor = models.ForeignKey(TutorProfile, on_delete=models.CASCADE)
+#     rating = models.IntegerField()  # Rating as an integer (e.g., 1-5)
+#     comment = models.TextField()  # Review text
+#     created_at = models.DateTimeField(auto_now_add=True)
  
+#     def __str__(self):
+#         return f"Review by {self.student.first_name} {self.student.last_name} for {self.tutor.user.first_name} {self.tutor.user.last_name}"
+
+class TutorReview(models.Model):
+    student_id = models.IntegerField()  # Direct integer storage for student ID
+    tutor_id = models.IntegerField()    # Direct integer storage for tutor ID
+    rating = models.IntegerField()      # Rating as an integer (e.g., 1-5)
+    comment = models.TextField()        # Review text
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
-        return f"Review by {self.student.first_name} {self.student.last_name} for {self.tutor.user.first_name} {self.tutor.user.last_name}"
+        return f"Review by Student ID {self.student_id} for Tutor ID {self.tutor_id}"
+ 
  
 
 class TutorAnalyticsView(models.Model):
