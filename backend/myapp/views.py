@@ -889,6 +889,21 @@ def add_review(request, tutor_id):
             review.save()
             print(f"Review created successfully: {review}")
 
+            # Calculate the new average rating
+            reviews = TutorReview.objects.filter(tutor_id=tutor_id)
+            total_ratings = sum([rev.rating for rev in reviews])
+            num_reviews = reviews.count()
+
+            # Safeguard division by zero
+            if num_reviews == 0:
+                average_rating = 0.0
+            else:
+                average_rating = round(total_ratings / num_reviews, 2)
+
+            # Update the average rating in TutorProfile
+            TutorProfile.objects.filter(id=tutor_id).update(average_rating=average_rating)
+
+
             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
 
         except Exception as e:
