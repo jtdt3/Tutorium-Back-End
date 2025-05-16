@@ -1129,25 +1129,61 @@ def get_tutor_requests(request, tutor_id):
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+# @csrf_exempt
+# def list_reviews(request, tutor_id):
+#     try:
+#         # Filter reviews based on the integer tutor_id
+#         qs = TutorReview.objects.filter(tutor_id=tutor_id).order_by('-created_at')
+
+#         # Prepare the list of reviews
+#         reviews = []
+#         for r in qs:
+#             reviews.append({
+#                 "id": r.pk,
+#                 "student_id": r.student_id,
+#                 "tutor_id": r.tutor_id,
+#                 "rating": r.rating,
+#                 "comment": r.comment,
+#                 "created_at": r.created_at.isoformat(),
+#             })
+
+#         # Log the response for debugging
+#         print(f"Returning {len(reviews)} reviews for tutor_id: {tutor_id}")
+
+#         return JsonResponse({"reviews": reviews}, safe=False)
+
+#     except Exception as e:
+#         print(f"Error fetching reviews: {str(e)}")
+#         return JsonResponse({"error": str(e)}, status=500)
+
+
 @csrf_exempt
 def list_reviews(request, tutor_id):
     try:
-        # Filter reviews based on the integer tutor_id
+        # Get all matching reviews for the given tutor_id
         qs = TutorReview.objects.filter(tutor_id=tutor_id).order_by('-created_at')
 
-        # Prepare the list of reviews
         reviews = []
         for r in qs:
+            # Fetch student details using the student_id from the review
+            try:
+                student = StudentUser.objects.get(pk=r.student_id)
+                student_name = f"{student.first_name} {student.last_name}"
+            except StudentUser.DoesNotExist:
+                student_name = "Unknown Student"
+
+            # Append the review details including the student name
             reviews.append({
                 "id": r.pk,
                 "student_id": r.student_id,
                 "tutor_id": r.tutor_id,
+                "student_name": student_name,
                 "rating": r.rating,
                 "comment": r.comment,
                 "created_at": r.created_at.isoformat(),
             })
 
-        # Log the response for debugging
+        # Log the number of reviews returned
         print(f"Returning {len(reviews)} reviews for tutor_id: {tutor_id}")
 
         return JsonResponse({"reviews": reviews}, safe=False)
