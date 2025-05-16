@@ -782,6 +782,61 @@ def get_bookmarked_tutors(request):
 #     else:
 #         return JsonResponse({'error': 'Invalid request method'}, status=405)
  
+# @csrf_exempt
+# def add_review(request, tutor_id):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             student_id = data.get('studentID')
+#             rating = data.get('rating')
+#             comment = data.get('comment')
+ 
+#             # Validate input
+#             if not all([student_id, tutor_id, rating, comment]):
+#                 return JsonResponse({'error': 'You must provide all the required fields.'}, status=400)
+ 
+#             # Validate rating
+#             if not (1 <= rating <= 5):
+#                 return JsonResponse({'error': 'Rating must be between 1 and 5.'}, status=400)
+ 
+#             # Check if the student already submitted a review for this tutor
+#             if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
+#                 return JsonResponse({
+#                     'error': 'You have already submitted a review for this tutor.'
+#                 }, status=400)
+ 
+        #     # Fetch student and tutor instances
+        #     student = StudentUser.objects.get(id=student_id)
+        #     tutor = TutorProfile.objects.get(user_id=tutor_id)
+ 
+        #     # Create and save the review
+        #     review = TutorReview.objects.create(
+        #         student=student,
+        #         tutor=tutor,
+        #         rating=rating,
+        #         comment=comment
+        #     )
+        #     review.save()
+ 
+        #     # Update tutor's average rating
+        #     reviews = TutorReview.objects.filter(tutor=tutor)
+        #     avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+        #     tutor.average_rating = round(avg_rating, 2)  # rounding to 2 decimal places
+        #     tutor.save()
+ 
+        #     return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
+        # except StudentUser.DoesNotExist:
+        #     return JsonResponse({'error': 'Invalid studentID'}, status=404)
+        # except TutorProfile.DoesNotExist:
+        #     return JsonResponse({'error': 'Invalid tutorID'}, status=404)
+        # except Exception as e:
+        #     return JsonResponse({'error': str(e)}, status=500)
+    # else:
+    #     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+
 @csrf_exempt
 def add_review(request, tutor_id):
     if request.method == 'POST':
@@ -790,49 +845,25 @@ def add_review(request, tutor_id):
             student_id = data.get('studentID')
             rating = data.get('rating')
             comment = data.get('comment')
- 
-            # Validate input
-            if not all([student_id, tutor_id, rating, comment]):
-                return JsonResponse({'error': 'You must provide all the required fields.'}, status=400)
- 
-            # Validate rating
-            if not (1 <= rating <= 5):
-                return JsonResponse({'error': 'Rating must be between 1 and 5.'}, status=400)
- 
-            # Check if the student already submitted a review for this tutor
-            if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
-                return JsonResponse({
-                    'error': 'You have already submitted a review for this tutor.'
-                }, status=400)
- 
-            # Fetch student and tutor instances
-            student = StudentUser.objects.get(id=student_id)
-            tutor = TutorProfile.objects.get(user_id=tutor_id)
- 
-            # Create and save the review
+
+            # Directly create and save the review without any checks
             review = TutorReview.objects.create(
-                student=student,
-                tutor=tutor,
+                student_id=student_id,
+                tutor_id=tutor_id,
                 rating=rating,
                 comment=comment
             )
+
+            # Save the review
             review.save()
- 
-            # Update tutor's average rating
-            reviews = TutorReview.objects.filter(tutor=tutor)
-            avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
-            tutor.average_rating = round(avg_rating, 2)  # rounding to 2 decimal places
-            tutor.save()
- 
+
             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
-        except StudentUser.DoesNotExist:
-            return JsonResponse({'error': 'Invalid studentID'}, status=404)
-        except TutorProfile.DoesNotExist:
-            return JsonResponse({'error': 'Invalid tutorID'}, status=404)
+
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
     
 
 # @csrf_exempt
