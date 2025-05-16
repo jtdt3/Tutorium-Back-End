@@ -837,6 +837,34 @@ def get_bookmarked_tutors(request):
 
 
 
+# @csrf_exempt
+# def add_review(request, tutor_id):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             student_id = data.get('studentID')
+#             rating = data.get('rating')
+#             comment = data.get('comment')
+
+#             # Directly create and save the review without any checks
+#             review = TutorReview.objects.create(
+#                 student_id=student_id,
+#                 tutor_id=tutor_id,
+#                 rating=rating,
+#                 comment=comment
+#             )
+
+#             # Save the review
+#             review.save()
+
+#             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
+
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#     else:
+#         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
 @csrf_exempt
 def add_review(request, tutor_id):
     if request.method == 'POST':
@@ -846,7 +874,10 @@ def add_review(request, tutor_id):
             rating = data.get('rating')
             comment = data.get('comment')
 
-            # Directly create and save the review without any checks
+            # Log the received data
+            print(f"Received: student_id={student_id}, tutor_id={tutor_id}, rating={rating}, comment={comment}")
+
+            # Create and save the review directly with IDs
             review = TutorReview.objects.create(
                 student_id=student_id,
                 tutor_id=tutor_id,
@@ -856,13 +887,16 @@ def add_review(request, tutor_id):
 
             # Save the review
             review.save()
+            print(f"Review created successfully: {review}")
 
             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
 
         except Exception as e:
+            print(f"Error while creating review: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
     
 
