@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,8 +42,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 EMAIL_BACKEND = 'django_ses.SESBackend'
 # AWS credentials
-AWS_ACCESS_KEY_ID = 'AKIARYEUC2NWY3PWGBEH'# Replace with your AWS Access Key
-AWS_SECRET_ACCESS_KEY = 'QcvvZJg3ce84foxnvcnESUWocO7vNw1807SKjWVO'# Replace with your AWS Secret Key
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_SES_REGION_NAME = 'us-west-2'# Replace with your SES region
 AWS_SES_REGION_ENDPOINT = 'email.us-west-2.amazonaws.com'# Sender email address (must be verified in SES)
 DEFAULT_FROM_EMAIL = 'help.tutorium@gmail.com'# Your verified Gmail address# Optional SES settings
