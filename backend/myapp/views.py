@@ -1063,3 +1063,27 @@ def get_tutor_requests(request, tutor_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@csrf_exempt
+def list_reviews(request, tutor_id):
+    # make sure the tutor exists (404 otherwise)
+    tutor = get_object_or_404(TutorProfile, pk=tutor_id)
+
+    # grab all reviews for that tutor, newest first
+    reviews = TutorReview.objects.filter(tutor=tutor).order_by('-created_at')
+
+    # build a simple list of dicts
+    data = []
+    for r in reviews:
+        data.append({
+            'id': r.id,
+            'student_name': f"{r.student.first_name} {r.student.last_name}",
+            'rating': r.rating,
+            'comment': r.comment,
+            # ISO timestamp is fine for JS, we’ll format later
+            'created_at': r.created_at.isoformat(),
+        })
+
+    # return as a JSON array
+    return JsonResponse(data, safe=False)
+
