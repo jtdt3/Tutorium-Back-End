@@ -901,7 +901,7 @@ def add_review(request, tutor_id):
                 average_rating = round(total_ratings / num_reviews, 2)
 
             # Update the average rating in TutorProfile
-            TutorProfile.objects.filter(id=tutor_id).update(average_rating=average_rating)
+            TutorProfile.objects.filter(user_id=tutor_id).update(average_rating=average_rating)
 
 
             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
