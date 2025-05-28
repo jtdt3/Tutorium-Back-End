@@ -1208,4 +1208,3 @@ def list_reviews(request, tutor_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-
