@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers, save_request_form_info, get_tutor_request_count, get_tutor_requests, initiate_signup
+from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers, save_request_form_info, get_tutor_request_count, get_tutor_requests, initiate_signup, list_reviews, verify_subject
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/unbookmark-tutor/', unbookmark_tutor, name='unbookmark_tutor'),
     path('api/bookmarked-tutors/', get_bookmarked_tutors, name='get_bookmarked_tutors'),
     path('api/tutor/<int:tutor_id>/add-review/', add_review, name='add_review'),
+    path('api/tutor/<int:tutor_id>/reviews/', list_reviews, name='list_reviews'),
 
     path('api/log-view/', log_tutor_view, name='log_tutor_view'),
     path('api/tutor/<int:user_id>/view-count/', get_view_count, name='get_view_count'),
@@ -46,6 +47,7 @@ urlpatterns = [
     path('api/save-request-form-info/', save_request_form_info, name='save-request-form-info'),
     path('api/tutor/<int:tutor_id>/request-count/', get_tutor_request_count, name='get-tutor-request-count'),
     path('api/tutor/<int:tutor_id>/request-list/', get_tutor_requests, name='get-tutor-requests'),
+    path('api/verify-subject/', verify_subject, name='verify-subject'),
 
 
 

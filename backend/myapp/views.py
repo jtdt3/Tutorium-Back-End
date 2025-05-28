@@ -423,6 +423,7 @@ def get_tutor_profile(request):
                     'profile_complete': tutor_profile.profile_complete,
                     'gender': tutor_profile.gender,
                     'hourly_rate': str(tutor_profile.hourly_rate) if tutor_profile.hourly_rate is not None else '',
+                    'verified': tutor_profile.verified or '',  # <-- added this line
                 }, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'error': 'Profile not found'}, status=404)
@@ -521,6 +522,7 @@ def search_tutors(request):
             'average_rating',
             'gender',
             'hourly_rate',
+            'verified',
         )
 
         return JsonResponse(list(tutors), safe=False)
@@ -542,7 +544,9 @@ def tutor_details(request, tutor_id):
                 'language',
                 'average_rating',  # Include average_rating in the response
                 'gender',          # <-- Add this
-                'hourly_rate'      # <-- And this
+                'hourly_rate',      # <-- And this
+                'verified'
+             
             ).first()
  
             if not tutor:
@@ -742,6 +746,7 @@ def get_bookmarked_tutors(request):
                         'location': tutor_profile.location,
                         'languages': tutor_profile.language,
                         'profile_picture': tutor_profile.profile_picture,  # Include S3 URL
+                        'verified': tutor_profile.verified,  # ✅ Include verified subjects
                     })
  
             return JsonResponse({'bookmarked_tutors': bookmarked_tutors}, status=200)
@@ -782,6 +787,89 @@ def get_bookmarked_tutors(request):
 #     else:
 #         return JsonResponse({'error': 'Invalid request method'}, status=405)
  
+# @csrf_exempt
+# def add_review(request, tutor_id):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             student_id = data.get('studentID')
+#             rating = data.get('rating')
+#             comment = data.get('comment')
+ 
+#             # Validate input
+#             if not all([student_id, tutor_id, rating, comment]):
+#                 return JsonResponse({'error': 'You must provide all the required fields.'}, status=400)
+ 
+#             # Validate rating
+#             if not (1 <= rating <= 5):
+#                 return JsonResponse({'error': 'Rating must be between 1 and 5.'}, status=400)
+ 
+#             # Check if the student already submitted a review for this tutor
+#             if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
+#                 return JsonResponse({
+#                     'error': 'You have already submitted a review for this tutor.'
+#                 }, status=400)
+ 
+        #     # Fetch student and tutor instances
+        #     student = StudentUser.objects.get(id=student_id)
+        #     tutor = TutorProfile.objects.get(user_id=tutor_id)
+ 
+        #     # Create and save the review
+        #     review = TutorReview.objects.create(
+        #         student=student,
+        #         tutor=tutor,
+        #         rating=rating,
+        #         comment=comment
+        #     )
+        #     review.save()
+ 
+        #     # Update tutor's average rating
+        #     reviews = TutorReview.objects.filter(tutor=tutor)
+        #     avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+        #     tutor.average_rating = round(avg_rating, 2)  # rounding to 2 decimal places
+        #     tutor.save()
+ 
+        #     return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
+        # except StudentUser.DoesNotExist:
+        #     return JsonResponse({'error': 'Invalid studentID'}, status=404)
+        # except TutorProfile.DoesNotExist:
+        #     return JsonResponse({'error': 'Invalid tutorID'}, status=404)
+        # except Exception as e:
+        #     return JsonResponse({'error': str(e)}, status=500)
+    # else:
+    #     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+
+# @csrf_exempt
+# def add_review(request, tutor_id):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             student_id = data.get('studentID')
+#             rating = data.get('rating')
+#             comment = data.get('comment')
+
+#             # Directly create and save the review without any checks
+#             review = TutorReview.objects.create(
+#                 student_id=student_id,
+#                 tutor_id=tutor_id,
+#                 rating=rating,
+#                 comment=comment
+#             )
+
+#             # Save the review
+#             review.save()
+
+#             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
+
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#     else:
+#         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
 @csrf_exempt
 def add_review(request, tutor_id):
     if request.method == 'POST':
@@ -790,49 +878,46 @@ def add_review(request, tutor_id):
             student_id = data.get('studentID')
             rating = data.get('rating')
             comment = data.get('comment')
- 
-            # Validate input
-            if not all([student_id, tutor_id, rating, comment]):
-                return JsonResponse({'error': 'You must provide all the required fields.'}, status=400)
- 
-            # Validate rating
-            if not (1 <= rating <= 5):
-                return JsonResponse({'error': 'Rating must be between 1 and 5.'}, status=400)
- 
-            # Check if the student already submitted a review for this tutor
-            if TutorReview.objects.filter(student_id=student_id, tutor_id=tutor_id).exists():
-                return JsonResponse({
-                    'error': 'You have already submitted a review for this tutor.'
-                }, status=400)
- 
-            # Fetch student and tutor instances
-            student = StudentUser.objects.get(id=student_id)
-            tutor = TutorProfile.objects.get(user_id=tutor_id)
- 
-            # Create and save the review
+
+            # Log the received data
+            print(f"Received: student_id={student_id}, tutor_id={tutor_id}, rating={rating}, comment={comment}")
+
+            # Create and save the review directly with IDs
             review = TutorReview.objects.create(
-                student=student,
-                tutor=tutor,
+                student_id=student_id,
+                tutor_id=tutor_id,
                 rating=rating,
                 comment=comment
             )
+
+            # Save the review
             review.save()
- 
-            # Update tutor's average rating
-            reviews = TutorReview.objects.filter(tutor=tutor)
-            avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
-            tutor.average_rating = round(avg_rating, 2)  # rounding to 2 decimal places
-            tutor.save()
- 
+            print(f"Review created successfully: {review}")
+
+            # Calculate the new average rating
+            reviews = TutorReview.objects.filter(tutor_id=tutor_id)
+            total_ratings = sum([rev.rating for rev in reviews])
+            num_reviews = reviews.count()
+
+            # Safeguard division by zero
+            if num_reviews == 0:
+                average_rating = 0.0
+            else:
+                average_rating = round(total_ratings / num_reviews, 2)
+
+            # Update the average rating in TutorProfile
+            TutorProfile.objects.filter(user_id=tutor_id).update(average_rating=average_rating)
+
+
             return JsonResponse({'message': 'Review submitted successfully!'}, status=201)
-        except StudentUser.DoesNotExist:
-            return JsonResponse({'error': 'Invalid studentID'}, status=404)
-        except TutorProfile.DoesNotExist:
-            return JsonResponse({'error': 'Invalid tutorID'}, status=404)
+
         except Exception as e:
+            print(f"Error while creating review: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
     
 
 # @csrf_exempt
@@ -1063,3 +1148,91 @@ def get_tutor_requests(request, tutor_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+# @csrf_exempt
+# def list_reviews(request, tutor_id):
+#     try:
+#         # Filter reviews based on the integer tutor_id
+#         qs = TutorReview.objects.filter(tutor_id=tutor_id).order_by('-created_at')
+
+#         # Prepare the list of reviews
+#         reviews = []
+#         for r in qs:
+#             reviews.append({
+#                 "id": r.pk,
+#                 "student_id": r.student_id,
+#                 "tutor_id": r.tutor_id,
+#                 "rating": r.rating,
+#                 "comment": r.comment,
+#                 "created_at": r.created_at.isoformat(),
+#             })
+
+#         # Log the response for debugging
+#         print(f"Returning {len(reviews)} reviews for tutor_id: {tutor_id}")
+
+#         return JsonResponse({"reviews": reviews}, safe=False)
+
+#     except Exception as e:
+#         print(f"Error fetching reviews: {str(e)}")
+#         return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def list_reviews(request, tutor_id):
+    try:
+        # Get all matching reviews for the given tutor_id
+        qs = TutorReview.objects.filter(tutor_id=tutor_id).order_by('-created_at')
+
+        reviews = []
+        for r in qs:
+            # Fetch student details using the student_id from the review
+            try:
+                student = StudentUser.objects.get(pk=r.student_id)
+                student_name = f"{student.first_name} {student.last_name}"
+            except StudentUser.DoesNotExist:
+                student_name = "Unknown Student"
+
+            # Append the review details including the student name
+            reviews.append({
+                "id": r.pk,
+                "student_id": r.student_id,
+                "tutor_id": r.tutor_id,
+                "student_name": student_name,
+                "rating": r.rating,
+                "comment": r.comment,
+                "created_at": r.created_at.isoformat(),
+            })
+
+        # Log the number of reviews returned
+        print(f"Returning {len(reviews)} reviews for tutor_id: {tutor_id}")
+
+        return JsonResponse({"reviews": reviews}, safe=False)
+
+    except Exception as e:
+        print(f"Error fetching reviews: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+@csrf_exempt
+def verify_subject(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        subject = data.get('subject')
+ 
+        try:
+            profile = TutorProfile.objects.get(user__id=user_id)
+            current = profile.verified.split(',') if profile.verified else []
+            if subject not in current:
+                current.append(subject)
+                profile.verified = ','.join(current)
+                profile.save()
+ 
+            return JsonResponse({'status': 'success'})
+        except TutorProfile.DoesNotExist:
+            return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+ 
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+ 
+
+
+
