@@ -1207,5 +1207,27 @@ def list_reviews(request, tutor_id):
         print(f"Error fetching reviews: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
 
+@csrf_exempt
+def verify_subject(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        subject = data.get('subject')
+ 
+        try:
+            profile = TutorProfile.objects.get(user__id=user_id)
+            current = profile.verified.split(',') if profile.verified else []
+            if subject not in current:
+                current.append(subject)
+                profile.verified = ','.join(current)
+                profile.save()
+ 
+            return JsonResponse({'status': 'success'})
+        except TutorProfile.DoesNotExist:
+            return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+ 
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+ 
+
 
 
