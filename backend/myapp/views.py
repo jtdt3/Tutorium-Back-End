@@ -423,6 +423,7 @@ def get_tutor_profile(request):
                     'profile_complete': tutor_profile.profile_complete,
                     'gender': tutor_profile.gender,
                     'hourly_rate': str(tutor_profile.hourly_rate) if tutor_profile.hourly_rate is not None else '',
+                    'verified': tutor_profile.verified or '',  # <-- added this line
                 }, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'error': 'Profile not found'}, status=404)
