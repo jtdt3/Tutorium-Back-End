@@ -76,7 +76,8 @@ class TutorProfile(models.Model):
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], blank=True, null=True)
     hourly_rate = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)  # Add this field
- 
+    verified = models.CharField(max_length=500, blank=True, default="")
+    
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}'s Profile"
  
