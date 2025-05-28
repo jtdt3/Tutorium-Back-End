@@ -544,7 +544,9 @@ def tutor_details(request, tutor_id):
                 'language',
                 'average_rating',  # Include average_rating in the response
                 'gender',          # <-- Add this
-                'hourly_rate'      # <-- And this
+                'hourly_rate',      # <-- And this
+                'verified'
+             
             ).first()
  
             if not tutor:
