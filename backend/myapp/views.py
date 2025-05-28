@@ -522,6 +522,7 @@ def search_tutors(request):
             'average_rating',
             'gender',
             'hourly_rate',
+            'verified',
         )
 
         return JsonResponse(list(tutors), safe=False)
