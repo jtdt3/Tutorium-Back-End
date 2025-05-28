@@ -423,6 +423,8 @@ def get_tutor_profile(request):
                     'profile_complete': tutor_profile.profile_complete,
                     'gender': tutor_profile.gender,
                     'hourly_rate': str(tutor_profile.hourly_rate) if tutor_profile.hourly_rate is not None else '',
+                    'verified': tutor_profile.verified or '',  # <-- added this line
+
                 }, status=200)
             except TutorProfile.DoesNotExist:
                 return JsonResponse({'error': 'Profile not found'}, status=404)
@@ -521,6 +523,7 @@ def search_tutors(request):
             'average_rating',
             'gender',
             'hourly_rate',
+            'verified',  # ← Add this line
         )
 
         return JsonResponse(list(tutors), safe=False)
@@ -543,6 +546,8 @@ def tutor_details(request, tutor_id):
                 'average_rating',  # Include average_rating in the response
                 'gender',          # <-- Add this
                 'hourly_rate'      # <-- And this
+                'verified',  # Include verified field
+
             ).first()
  
             if not tutor:
@@ -742,6 +747,8 @@ def get_bookmarked_tutors(request):
                         'location': tutor_profile.location,
                         'languages': tutor_profile.language,
                         'profile_picture': tutor_profile.profile_picture,  # Include S3 URL
+                        'verified': tutor_profile.verified,  # ✅ Include verified subjects
+
                     })
  
             return JsonResponse({'bookmarked_tutors': bookmarked_tutors}, status=200)
@@ -1208,3 +1215,23 @@ def list_reviews(request, tutor_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+@csrf_exempt
+def verify_subject(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        user_id = data.get('user_id')
+        subject = data.get('subject')
+
+        try:
+            profile = TutorProfile.objects.get(user__id=user_id)
+            current = profile.verified.split(',') if profile.verified else []
+            if subject not in current:
+                current.append(subject)
+                profile.verified = ','.join(current)
+                profile.save()
+
+            return JsonResponse({'status': 'success'})
+        except TutorProfile.DoesNotExist:
+            return JsonResponse({'error': 'Tutor profile not found'}, status=404)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
