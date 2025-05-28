@@ -746,6 +746,7 @@ def get_bookmarked_tutors(request):
                         'location': tutor_profile.location,
                         'languages': tutor_profile.language,
                         'profile_picture': tutor_profile.profile_picture,  # Include S3 URL
+                        'verified': tutor_profile.verified,  # ✅ Include verified subjects
                     })
  
             return JsonResponse({'bookmarked_tutors': bookmarked_tutors}, status=200)
