@@ -21,6 +21,36 @@ from datetime import date
  
 logger = logging.getLogger(__name__)
 
+@csrf_exempt
+def verify_email_password(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            password = data.get('password')
+
+
+            if not email or not password:
+                return JsonResponse({'error': 'Email and password are required.'}, status=400)
+
+
+            try:
+                user = StudentUser.objects.get(email=email)
+            except StudentUser.DoesNotExist:
+                return JsonResponse({'error': 'No account found with that email.'}, status=404)
+
+
+            if check_password(password, user.password):
+                return JsonResponse({'valid': True})
+            else:
+                return JsonResponse({'valid': False, 'error': 'Incorrect password.'}, status=400)
+
+
+        except Exception as e:
+            return JsonResponse({'error': f'Server error: {str(e)}'}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
+
 
 @csrf_exempt
 def send_2fa_code(request):

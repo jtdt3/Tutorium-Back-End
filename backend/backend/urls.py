@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers, save_request_form_info, get_tutor_request_count, get_tutor_requests, initiate_signup, list_reviews, verify_subject
+from myapp.views import signup, send_2fa_code, verify_2fa_code, application, tutor_profile_status, tutor_approve_status, save_tutor_profile, get_tutor_profile, get_student_user_data, search_tutors, tutor_details, signin, send_tutor_request_email, bookmark_tutor, is_tutor_bookmarked, unbookmark_tutor, get_bookmarked_tutors, add_review, log_tutor_view, get_view_count, get_views_per_day, get_viewers, save_request_form_info, get_tutor_request_count, get_tutor_requests, initiate_signup, list_reviews, verify_subject, verify_email_password
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/search-tutors/', search_tutors, name='search_tutors'),
     path('api/tutor-details/<int:tutor_id>/', tutor_details, name='tutor-details'),
     path('api/signin/', signin, name='signin'),
+    path('api/verify-email-password/', verify_email_password, name='verify_email_password'),
     path('api/tutor-request-email/', send_tutor_request_email, name='send-tutor-request-email'),
     path('api/bookmark-tutor/', bookmark_tutor, name='bookmark_tutor'),
     path('api/is-tutor-bookmarked/', is_tutor_bookmarked, name='is_tutor_bookmarked'),
