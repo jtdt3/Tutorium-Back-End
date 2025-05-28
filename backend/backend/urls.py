@@ -47,7 +47,7 @@ urlpatterns = [
     path('api/save-request-form-info/', save_request_form_info, name='save-request-form-info'),
     path('api/tutor/<int:tutor_id>/request-count/', get_tutor_request_count, name='get-tutor-request-count'),
     path('api/tutor/<int:tutor_id>/request-list/', get_tutor_requests, name='get-tutor-requests'),
-    path('/api/verify-subject/', verify_subject, name='verify-subject'),
+    path('api/verify-subject/', verify_subject, name='verify-subject'),
 
 
 
